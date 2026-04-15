@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum SegmentType {
+  DYNAMIC
+  STATIC
+}
+
+model Customer {
+  id                String    @id @default(uuid())
+  name              String
+  email             String    @unique
+  totalSpent        Decimal   @db.Decimal(10, 2) @default(0)
+  lastTransactionAt DateTime?
+  createdAt         DateTime  @default(now())
+  transactions      Transaction[]
+  memberships       SegmentMembership[]
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  customerId  String
+  amount      Decimal  @db.Decimal(10, 2)
+  createdAt   DateTime @default(now())
+  customer    Customer @relation(fields: [customerId], references: [id])
+}
+
+model Segment {
+  id          String      @id @default(uuid())
+  name        String
+  type        SegmentType @default(DYNAMIC)
+  rules       Json
+  frozenAt    DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  members     SegmentMembership[]
+  deltas      SegmentDelta[]
+}
+
+model SegmentMembership {
+  id         String   @id @default(uuid())
+  segmentId  String
+  customerId String
+  joinedAt   DateTime @default(now())
+  segment    Segment  @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  @@unique([segmentId, customerId])
+}
+
+model SegmentDelta {
+  id           String   @id @default(uuid())
+  segmentId    String
+  computedAt   DateTime @default(now())
+  added        String[] 
+  removed      String[] 
+  addedCount   Int
+  removedCount Int
+  triggeredBy  String   
+  segment      Segment  @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+}
