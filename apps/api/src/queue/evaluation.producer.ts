@@ -12,7 +12,7 @@ export class EvaluationProducer {
       'evaluate',
       { segmentId, triggeredBy },
       { 
-        jobId: `eval:${segmentId}`, // ეს არის მთავარი!
+        jobId: `eval-${segmentId}`, // ეს არის მთავარი!
         removeOnComplete: true 
       }
     );

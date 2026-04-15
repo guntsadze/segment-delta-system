@@ -1,14 +1,26 @@
 import { Controller, Get, Post, Param, Query, ParseIntPipe } from '@nestjs/common';
 import { SegmentsService } from './segments.service';
+import { PrismaService } from 'prisma/prisma.service';
 
 @Controller('segments')
 export class SegmentsController {
-  constructor(private segmentsService: SegmentsService) {}
+  constructor(private segmentsService: SegmentsService,
+              private readonly prisma: PrismaService
+  ) {}
 
   @Get()
   async findAll() {
     return this.segmentsService.findAll();
   }
+
+  @Get('all/customers')
+async getAllCustomers() {
+  // უბრალოდ წამოვიღოთ პირველი 50 მომხმარებელი სიმულაციისთვის
+  return this.prisma.customer.findMany({
+    take: 50,
+    orderBy: { name: 'asc' }
+  });
+}
 
   @Get(':id')
   async findOne(@Param('id') id: string) {
