@@ -12,7 +12,6 @@ export const LogViewer = ({ logs }: { logs: Log[] }) => (
     <div className="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
       <div className="flex items-center gap-2">
         <Terminal size={16} className="text-blue-400" />
-        <span>Global Event Log</span>
       </div>
       <div className="flex gap-1">
         <div className="w-2 h-2 rounded-full bg-red-500" />

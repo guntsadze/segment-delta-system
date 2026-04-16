@@ -1,6 +1,6 @@
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X, Save, Plus, Trash2, Settings2 } from "lucide-react";
+import { X, Save, Plus, Trash2, Settings2, ChevronDown } from "lucide-react";
 import { segmentSchema, SegmentFormValues } from "@/types/segment";
 
 interface Props {
@@ -44,7 +44,7 @@ export const SegmentForm = ({ initialData, onSubmit, onClose }: Props) => {
               <Settings2 size={24} />
             </div>
             <h2 className="text-2xl font-bold text-slate-800">
-              {initialData ? "Edit Segment" : "Create New Segment"}
+              {initialData ? "რედაქტირება" : "დამატება"}
             </h2>
           </div>
           <button
@@ -60,7 +60,7 @@ export const SegmentForm = ({ initialData, onSubmit, onClose }: Props) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div className="space-y-2">
             <label className="text-sm font-semibold text-slate-600 ml-1">
-              Segment Name
+              სახელი
             </label>
             <input
               {...register("name")}
@@ -70,25 +70,43 @@ export const SegmentForm = ({ initialData, onSubmit, onClose }: Props) => {
           </div>
           <div className="space-y-2">
             <label className="text-sm font-semibold text-slate-600 ml-1">
-              Update Type
+              განახლების ტიპი
             </label>
             <select
               {...register("type")}
               className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white"
             >
-              <option value="DYNAMIC">Dynamic (Auto-update)</option>
-              <option value="STATIC">Static (Fixed list)</option>
+              <option value="DYNAMIC">დინამიური (Auto-update)</option>
+              <option value="STATIC">სტატიკური (Fixed list)</option>
             </select>
           </div>
         </div>
 
         {/* Rules Section */}
         <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
-          <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-            Rules & Conditions
-          </h3>
-
           <div className="space-y-4">
+            <div className="flex items-center justify-between mb-6 p-3 bg-slate-50/50 rounded-xl border border-slate-100">
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                  წესები და პირობები
+                </h3>
+              </div>
+
+              <div className="relative">
+                <select
+                  {...register("rules.operator")}
+                  className="appearance-none bg-white border border-slate-200 text-slate-700 text-xs font-semibold py-1.5 pl-3 pr-8 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer"
+                >
+                  <option value="AND">ყველა პირობა (AND)</option>
+                  <option value="OR">რომელიმე (OR)</option>
+                </select>
+
+                {/* პატარა ისარი select-ისთვის */}
+                <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-slate-400">
+                  <ChevronDown size={14} />
+                </div>
+              </div>
+            </div>
             {fields.map((field, index) => (
               <div
                 key={field.id}
@@ -103,19 +121,19 @@ export const SegmentForm = ({ initialData, onSubmit, onClose }: Props) => {
                     className="w-full p-2 bg-slate-50 border-none rounded-lg text-sm font-medium"
                   >
                     <option value="MIN_TRANSACTIONS_IN_DAYS">
-                      Min Transactions
+                      მინიმალური ტრანზაქცია
                     </option>
-                    <option value="MIN_SPEND_IN_DAYS">Min Spend in Days</option>
-                    <option value="INACTIVE_AFTER_ACTIVE">
-                      Inactive After Active
+                    <option value="MIN_SPEND_IN_DAYS">
+                      მინიმალური დახარჯვა დღეში
                     </option>
+                    <option value="INACTIVE_AFTER_ACTIVE">ბოლო აქტივობა</option>
                     <option value="IN_SEGMENT">In Segment</option>
                   </select>
                 </div>
 
                 <div className="w-24 space-y-1">
                   <label className="text-[10px] font-bold text-slate-400 uppercase">
-                    Days
+                    დღე
                   </label>
                   <input
                     type="number"
@@ -128,7 +146,7 @@ export const SegmentForm = ({ initialData, onSubmit, onClose }: Props) => {
 
                 <div className="w-28 space-y-1">
                   <label className="text-[10px] font-bold text-slate-400 uppercase">
-                    Min Amount
+                    თანხა
                   </label>
                   <input
                     type="number"
@@ -142,7 +160,7 @@ export const SegmentForm = ({ initialData, onSubmit, onClose }: Props) => {
 
                 <div className="w-24 space-y-1">
                   <label className="text-[10px] font-bold text-slate-400 uppercase">
-                    Count
+                    რაოდენობა
                   </label>
                   <input
                     type="number"
@@ -177,7 +195,7 @@ export const SegmentForm = ({ initialData, onSubmit, onClose }: Props) => {
             }
             className="mt-4 w-full py-3 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2 font-medium"
           >
-            <Plus size={18} /> Add Condition
+            <Plus size={18} /> პირობის დამატება
           </button>
         </div>
 
@@ -188,13 +206,13 @@ export const SegmentForm = ({ initialData, onSubmit, onClose }: Props) => {
             onClick={onClose}
             className="px-6 py-2.5 text-slate-600 font-medium hover:bg-slate-100 rounded-xl transition-colors"
           >
-            Discard
+            გაუქმება
           </button>
           <button
             type="submit"
             className="bg-slate-900 hover:bg-slate-800 text-white px-10 py-2.5 rounded-xl flex items-center gap-2 font-semibold shadow-lg shadow-slate-200 transition-all active:scale-95"
           >
-            <Save size={18} /> Save Segment
+            <Save size={18} /> შენახვა
           </button>
         </div>
       </form>

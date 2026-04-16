@@ -24,6 +24,9 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
+  // თუ შექმნილია სატესტო მონაცემები რო აღარ შევქმნათ კიდევ
+  const exists = await prisma.customer.count();
+  if (exists > 0) return console.log('✅ Seed already done, skipping...');
   console.log('🌱 Seeding database with Prisma 7 Adapter...');
 
   // გასუფთავება

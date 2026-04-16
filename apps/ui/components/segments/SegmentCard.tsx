@@ -43,14 +43,20 @@ export const SegmentCard = ({
       </div>
       <h3 className="text-xl font-bold text-slate-800 mb-1">{segment.name}</h3>
       <p className="text-slate-400 text-xs font-bold uppercase mb-4">
-        {segment.type} Population
+        {segment.type}
       </p>
       <div className="flex items-end justify-between">
-        <span className="text-2xl font-black text-slate-900">
-          {segment.memberCount}
-        </span>
-        <div className="text-blue-500 font-bold text-sm flex items-center gap-1">
-          View <ChevronRight size={16} />
+        <div className="flex flex-col">
+          <span className="text-slate-500 text-xs font-medium uppercase tracking-wider">
+            წევრების რაოდენობა
+          </span>
+          <span className="text-xl font-bold text-slate-900">
+            {segment.memberCount}
+          </span>
+        </div>
+
+        <div className="text-blue-600 font-semibold text-sm flex items-center gap-1 hover:text-blue-700 cursor-pointer transition-colors">
+          დეტალები <ChevronRight size={14} />
         </div>
       </div>
     </div>
