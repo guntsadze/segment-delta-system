@@ -52,6 +52,8 @@ model SegmentMembership {
   @@unique([segmentId, customerId])
 }
 
+
+// ეს არის ლოგი სადაც წერია როდის შეიცვალა სეგმენტი, ვინ დაემატა, ვინ წავიდა და რამ გამოიწვია ეს ცვლილება (triggeredBy).
 model SegmentDelta {
   id           String   @id @default(uuid())
   segmentId    String

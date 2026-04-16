@@ -6,8 +6,9 @@ import { PrismaService } from 'prisma/prisma.service';
 export class DeltaService {
   private readonly logger = new Logger(DeltaService.name);
 
-  constructor(private evaluatorService: EvaluatorService,
-    private readonly prisma: PrismaService
+  constructor(
+    private evaluatorService: EvaluatorService,
+    private readonly prisma: PrismaService,
   ) {}
 
   /**
@@ -28,12 +29,25 @@ export class DeltaService {
     const added = [...currentSet].filter((id) => !previousSet.has(id));
     const removed = [...previousSet].filter((id) => !currentSet.has(id));
 
+    // ვპოულობთ მომხმარებლების Email-ები დამატებულებისთვის
+    const addedCustomers = await this.prisma.customer.findMany({
+      where: { id: { in: added } },
+      select: { id: true, email: true },
+    });
+
+    // ვპოულობთ მომხმარებლების Email-ები წაშლილებისთვის
+    const removedCustomers = await this.prisma.customer.findMany({
+      where: { id: { in: removed } },
+      select: { id: true, email: true },
+    });
     // 4. თუ არაფერი შეცვლილა, გავჩერდეთ (ოპტიმიზაცია)
     if (added.length === 0 && removed.length === 0) {
       return null;
     }
 
-    this.logger.log(`Segment ${segmentId} delta: +${added.length}, -${removed.length}`);
+    this.logger.log(
+      `Segment ${segmentId} delta: +${added.length}, -${removed.length}`,
+    );
 
     // 5. ბაზის განახლება ტრანზაქციაში
     return await this.prisma.$transaction(async (tx) => {
@@ -54,6 +68,7 @@ export class DeltaService {
             segmentId,
             customerId,
           })),
+          // თავს ვიზღვევთ რომ თუ ვინმე უკვე არის სიაში შეცდომა არ გვქონდეს
           skipDuplicates: true,
         });
       }
@@ -72,8 +87,8 @@ export class DeltaService {
 
       return {
         segmentId,
-        added,
-        removed,
+        added: addedCustomers, // ახლა ეს არის [{id: '...', email: '...'}]
+        removed: removedCustomers, // ესეც იგივე სტრუქტურის
         deltaId: delta.id,
       };
     });

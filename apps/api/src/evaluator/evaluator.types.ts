@@ -1,9 +1,9 @@
-export type ConditionType = 
-  | 'MIN_TRANSACTIONS_IN_DAYS' 
-  | 'MIN_SPEND_IN_DAYS' 
-  | 'INACTIVE_AFTER_ACTIVE' 
-  | 'IN_SEGMENT';
-
+export enum ConditionType {
+  MIN_TRANSACTIONS_IN_DAYS = 'MIN_TRANSACTIONS_IN_DAYS',
+  MIN_SPEND_IN_DAYS = 'MIN_SPEND_IN_DAYS',
+  INACTIVE_AFTER_ACTIVE = 'INACTIVE_AFTER_ACTIVE',
+  IN_SEGMENT = 'IN_SEGMENT',
+}
 export interface Condition {
   type: ConditionType;
   days?: number;
@@ -13,7 +13,12 @@ export interface Condition {
   segmentId?: string;
 }
 
+export enum LogicalOperator {
+  AND = 'AND',
+  OR = 'OR',
+}
+
 export interface SegmentRules {
-  operator: 'AND' | 'OR';
+  operator: LogicalOperator;
   conditions: Condition[];
 }

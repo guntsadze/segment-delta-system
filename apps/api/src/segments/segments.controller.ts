@@ -7,9 +7,12 @@ import {
   ParseIntPipe,
   Body,
   Delete,
+  Patch,
 } from '@nestjs/common';
 import { SegmentsService } from './segments.service';
 import { PrismaService } from 'prisma/prisma.service';
+import { CreateSegmentDto } from './dto/segments.dto';
+import { UpdateSegmentDto } from './dto/update-segments.dto';
 
 @Controller('segments')
 export class SegmentsController {
@@ -56,18 +59,16 @@ export class SegmentsController {
   }
 
   @Post()
-  async create(
-    @Body() data: { name: string; type: 'DYNAMIC' | 'STATIC'; rules: any },
-  ) {
-    return this.segmentsService.create(data);
+  async create(@Body() createSegmentDto: CreateSegmentDto) {
+    return this.segmentsService.create(createSegmentDto);
   }
 
-  @Post(':id')
+  @Patch(':id')
   async update(
     @Param('id') id: string,
-    @Body() data: { name?: string; rules?: any },
+    @Body() updateSegmentDto: UpdateSegmentDto,
   ) {
-    return this.segmentsService.update(id, data);
+    return this.segmentsService.update(id, updateSegmentDto);
   }
 
   @Delete(':id')

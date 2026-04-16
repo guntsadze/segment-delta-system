@@ -38,6 +38,8 @@ export class DeltaGateway implements OnGatewayConnection {
    * მეთოდი, რომელსაც სერვისები გამოიძახებენ დელტას გასაგზავნად
    */
   sendDeltaUpdate(segmentId: string, delta: any) {
+    // console.log('🚀 ~ DeltaGateway ~ sendDeltaUpdate ~ delta:', delta);
+    // console.log('🚀 ~ DeltaGateway ~ sendDeltaUpdate ~ segmentId:', segmentId);
     this.server.to(`segment:${segmentId}`).emit('segment:delta', delta);
     // ასევე ვასხივებთ ზოგად ივენთს მთავარი გვერდისთვის (მხოლოდ რაოდენობების განსაახლებლად)
     this.server.emit('segment:counts_update', { segmentId, delta });

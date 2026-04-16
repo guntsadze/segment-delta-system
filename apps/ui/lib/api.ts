@@ -1,33 +1,22 @@
-// const API_URL = 'http://localhost:3001';
+import axios from "axios";
 
-// export async function apiFetch(endpoint: string, options?: RequestInit) {
-//   const res = await fetch(`${API_URL}${endpoint}`, {
-//     ...options,
-//     cache: 'no-store', // დინამიური მონაცემებისთვის
-//   });
-//   if (!res.ok) throw new Error('API Error');
-//   return res.json();
-// }
+const API_URL = "http://localhost:3001";
 
+export const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
 
-const API_URL = 'http://localhost:3001';
+// Response Interceptor: ერორების უკეთესი მართვისთვის
+api.interceptors.response.use(
+  (response) => response.data, // პირდაპირ მონაცემებს დააბრუნებს (res.data-ს გარეშე)
+  (error) => {
+    const errorData = error.response?.data || {};
+    console.error("API Error Details:", errorData);
 
-export async function apiFetch(endpoint: string, options?: RequestInit) {
-  const res = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json', // <--- დაამატე ეს
-      ...options?.headers,
-    },
-    cache: 'no-store',
-  });
-  
-  if (!res.ok) {
-    // მოდი, დავლოგოთ რეალური ერორი ბრაუზერში
-    const errorData = await res.json().catch(() => ({}));
-    console.error('API Error Details:', errorData);
-    throw new Error(`API Error: ${res.status}`);
-  }
-  
-  return res.json();
-}
+    // შეგვიძლია მოვაწყოთ გლობალური ერორ ნოტიფიკაცია აქ
+    return Promise.reject(error.response?.statusText || "Network Error");
+  },
+);

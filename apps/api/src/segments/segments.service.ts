@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { EvaluationProducer } from '../queue/evaluation.producer';
 import { PrismaService } from 'prisma/prisma.service';
+import { CreateSegmentDto } from './dto/segments.dto';
+import { UpdateSegmentDto } from './dto/update-segments.dto';
 
 @Injectable()
 export class SegmentsService {
@@ -88,12 +90,12 @@ export class SegmentsService {
   /**
    * ახალი სეგმენტის შექმნა
    */
-  async create(data: { name: string; type: 'DYNAMIC' | 'STATIC'; rules: any }) {
+  async create(data: CreateSegmentDto) {
     const segment = await this.prisma.segment.create({
       data: {
         name: data.name,
         type: data.type,
-        rules: data.rules,
+        rules: data.rules as any,
       },
     });
 
@@ -108,10 +110,14 @@ export class SegmentsService {
   /**
    * სეგმენტის განახლება
    */
-  async update(id: string, data: { name?: string; rules?: any }) {
+  async update(id: string, data: UpdateSegmentDto) {
     const segment = await this.prisma.segment.update({
       where: { id },
-      data,
+      data: {
+        name: data.name,
+        type: data.type,
+        rules: data.rules as any,
+      },
     });
 
     // თუ წესები შეიცვალა, ხელახლა უნდა გადაითვალოს

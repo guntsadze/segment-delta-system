@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
 import { Condition, SegmentRules } from './evaluator.types';
 import { PrismaService } from 'prisma/prisma.service';
 
@@ -11,13 +10,14 @@ export class EvaluatorService {
    * მთავარი მეთოდი: ითვლის სეგმენტის წევრებს
    */
   async evaluate(segmentId: string): Promise<Set<string>> {
+    // სეგმენტის წამოღება ბაზიდან
     const segment = await this.prisma.segment.findUnique({
       where: { id: segmentId },
     });
 
-    if (!segment) throw new Error('Segment not found');
+    if (!segment) throw new Error('სეგმენტი არ მოიძებნა');
 
-    // თუ სეგმენტი სტატიკურია, უბრალოდ ვაბრუნებთ მის არსებულ წევრებს
+    // თუ სეგმენტი სტატიკურია ნიშნავს რომ მომხმარებლები აქ ხელით არიან ჩამატებულნი და უბრალოდ ვაბრუნებთ მის არსებულ წევრებს
     if (segment.type === 'STATIC') {
       const members = await this.prisma.segmentMembership.findMany({
         where: { segmentId },
@@ -26,11 +26,14 @@ export class EvaluatorService {
       return new Set(members.map((m) => m.customerId));
     }
 
+    // ვიღებთ სეგმენტის წესებს
     const rules = segment.rules as unknown as SegmentRules;
+    // Set ავტომატურად შლის დუბლიკატებს, სწრაფია ვიდრე მასივში ძებნა
     const conditionResults: Set<string>[] = [];
 
     // თითოეული პირობისთვის ცალ-ცალკე ვიღებთ მომხმარებლების ID-ებს
     for (const condition of rules.conditions) {
+      // ვიღებთ მომხმარებლების ID-ებს
       const ids = await this.resolveCondition(condition);
       conditionResults.push(ids);
     }
@@ -44,9 +47,11 @@ export class EvaluatorService {
   private async resolveCondition(condition: Condition): Promise<Set<string>> {
     let result: { customerId: string }[] = [];
 
+    // ვიყენებთ switch - ს რადგან სხვადასხვა პირობისთვის სხვადასხვა Query გაეშვას ბაზაში
+
     switch (condition.type) {
       case 'MIN_TRANSACTIONS_IN_DAYS':
-        // SQL: პოულობს მომხმარებლებს, რომლებსაც X დღეში ჰქონდათ მინიმუმ N ტრანზაქცია
+        // Transaction ცხრილიდან მოგვაქვს მომხმარებლები ვინც ბოლო X დღეში მინიმუმ N ტრანზაქცია აქვს გატარებული
         result = await this.prisma.$queryRawUnsafe(`
           SELECT "customerId" FROM "Transaction"
           WHERE "createdAt" >= NOW() - INTERVAL '${condition.days} days'
@@ -56,7 +61,7 @@ export class EvaluatorService {
         break;
 
       case 'MIN_SPEND_IN_DAYS':
-        // SQL: პოულობს მომხმარებლებს, რომლებმაც X დღეში დახარჯეს მინიმუმ N ლარი
+        // Transaction ცხრილიდან მოგვაქვს მომხმარებლები, რომლებმაც X დღეში დახარჯეს მინიმუმ N ლარი
         result = await this.prisma.$queryRawUnsafe(`
           SELECT "customerId" FROM "Transaction"
           WHERE "createdAt" >= NOW() - INTERVAL '${condition.days} days'
@@ -66,7 +71,7 @@ export class EvaluatorService {
         break;
 
       case 'INACTIVE_AFTER_ACTIVE':
-        // რთული ლოგიკა: ჰქონდა ტრანზაქცია ძველად, მაგრამ არა ბოლო X დღეში
+        // პირდაპირ Customer ცხრილში ვნახულობთ lastTransactionAt ველს რადგან ვნახოთ ბოლოს როდის ქონდა აქტივობა
         result = await this.prisma.$queryRawUnsafe(`
           SELECT "id" as "customerId" FROM "Customer"
           WHERE "lastTransactionAt" < NOW() - INTERVAL '${condition.inactiveDays} days'
