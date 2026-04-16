@@ -7,16 +7,19 @@ import { GatewayModule } from './gateway/gateway.module';
 import { SimulationModule } from './simulation/simulation.module';
 import { SegmentsModule } from './segments/segments.module';
 import { PrismaModule } from 'prisma/prisma.module';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
-    BullModule.forRoot({
-      connection: {
-        host: 'localhost',
-        port: 6379,
-      },
+    ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: false }),
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        connection: {
+          host: configService.get('REDIS_HOST') || 'localhost',
+          port: configService.get('REDIS_PORT') || 6379,
+        },
+      }),
     }),
     PrismaModule,
     EvaluatorModule,

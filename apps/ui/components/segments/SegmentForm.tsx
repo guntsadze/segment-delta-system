@@ -1,6 +1,6 @@
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X, Save, Plus, Trash2, Activity } from "lucide-react";
+import { X, Save, Plus, Trash2, Settings2 } from "lucide-react";
 import { segmentSchema, SegmentFormValues } from "@/types/segment";
 
 interface Props {
@@ -22,7 +22,9 @@ export const SegmentForm = ({ initialData, onSubmit, onClose }: Props) => {
       type: "DYNAMIC",
       rules: {
         operator: "AND",
-        conditions: [{ type: "MIN_SPEND_IN_DAYS", days: 30, minAmount: 100 }],
+        conditions: [
+          { type: "MIN_SPEND_IN_DAYS", days: 30, minAmount: 100, minCount: 1 },
+        ],
       },
     },
   });
@@ -33,71 +35,166 @@ export const SegmentForm = ({ initialData, onSubmit, onClose }: Props) => {
   });
 
   return (
-    <div className="mb-10 bg-white p-8 rounded-2xl border-2 border-blue-100 shadow-xl">
+    <div className="mb-10 bg-white p-8 rounded-2xl border border-slate-200 shadow-2xl max-w-4xl mx-auto">
       <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="flex justify-between mb-6">
-          <h2 className="text-xl font-bold">
-            {initialData ? "Edit Segment" : "New Segment"}
-          </h2>
-          <button type="button" onClick={onClose}>
-            <X size={24} />
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8 pb-4 border-b">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+              <Settings2 size={24} />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-800">
+              {initialData ? "Edit Segment" : "Create New Segment"}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+          >
+            <X size={24} className="text-slate-500" />
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-6 mb-8">
-          <input
-            {...register("name")}
-            placeholder="Name"
-            className="p-3 border rounded-xl"
-          />
-          <select {...register("type")} className="p-3 border rounded-xl">
-            <option value="DYNAMIC">Dynamic</option>
-            <option value="STATIC">Static</option>
-          </select>
+        {/* Basic Info */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-slate-600 ml-1">
+              Segment Name
+            </label>
+            <input
+              {...register("name")}
+              placeholder="e.g. VIP Customers"
+              className={`w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all ${errors.name ? "border-red-500" : "border-slate-200"}`}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-slate-600 ml-1">
+              Update Type
+            </label>
+            <select
+              {...register("type")}
+              className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+            >
+              <option value="DYNAMIC">Dynamic (Auto-update)</option>
+              <option value="STATIC">Static (Fixed list)</option>
+            </select>
+          </div>
         </div>
 
-        <div className="bg-slate-50 p-6 rounded-2xl">
-          {fields.map((field, index) => (
-            <div key={field.id} className="flex gap-3 mb-3 items-end">
-              <select
-                {...register(`rules.conditions.${index}.type`)}
-                className="flex-1 p-2 rounded-lg"
+        {/* Rules Section */}
+        <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+          <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+            Rules & Conditions
+          </h3>
+
+          <div className="space-y-4">
+            {fields.map((field, index) => (
+              <div
+                key={field.id}
+                className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap md:flex-nowrap gap-4 items-end"
               >
-                <option value="MIN_SPEND_IN_DAYS">Spend</option>
-                <option value="MIN_TRANSACTIONS_IN_DAYS">Orders</option>
-              </select>
-              <input
-                type="number"
-                {...register(`rules.conditions.${index}.days`, {
-                  valueAsNumber: true,
-                })}
-                className="w-20 p-2 rounded-lg"
-              />
-              <button type="button" onClick={() => remove(index)}>
-                <Trash2 size={18} />
-              </button>
-            </div>
-          ))}
+                <div className="flex-1 min-w-[200px] space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">
+                    Condition Type
+                  </label>
+                  <select
+                    {...register(`rules.conditions.${index}.type`)}
+                    className="w-full p-2 bg-slate-50 border-none rounded-lg text-sm font-medium"
+                  >
+                    <option value="MIN_TRANSACTIONS_IN_DAYS">
+                      Min Transactions
+                    </option>
+                    <option value="MIN_SPEND_IN_DAYS">Min Spend in Days</option>
+                    <option value="INACTIVE_AFTER_ACTIVE">
+                      Inactive After Active
+                    </option>
+                    <option value="IN_SEGMENT">In Segment</option>
+                  </select>
+                </div>
+
+                <div className="w-24 space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">
+                    Days
+                  </label>
+                  <input
+                    type="number"
+                    {...register(`rules.conditions.${index}.days`, {
+                      valueAsNumber: true,
+                    })}
+                    className="w-full p-2 bg-slate-50 border-none rounded-lg text-sm"
+                  />
+                </div>
+
+                <div className="w-28 space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">
+                    Min Amount
+                  </label>
+                  <input
+                    type="number"
+                    {...register(`rules.conditions.${index}.minAmount`, {
+                      valueAsNumber: true,
+                    })}
+                    className="w-full p-2 bg-slate-50 border-none rounded-lg text-sm"
+                    placeholder="Amount"
+                  />
+                </div>
+
+                <div className="w-24 space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">
+                    Count
+                  </label>
+                  <input
+                    type="number"
+                    {...register(`rules.conditions.${index}.minCount`, {
+                      valueAsNumber: true,
+                    })}
+                    className="w-full p-2 bg-slate-50 border-none rounded-lg text-sm"
+                    placeholder="Count"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => remove(index)}
+                  className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors mb-0.5"
+                >
+                  <Trash2 size={20} />
+                </button>
+              </div>
+            ))}
+          </div>
+
           <button
             type="button"
             onClick={() =>
-              append({ type: "MIN_SPEND_IN_DAYS", days: 30, minAmount: 500 })
+              append({
+                type: "MIN_SPEND_IN_DAYS",
+                days: 30,
+                minAmount: 100,
+                minCount: 1,
+              })
             }
-            className="text-blue-600 mt-2 flex items-center gap-1"
+            className="mt-4 w-full py-3 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2 font-medium"
           >
-            <Plus size={16} /> Add Rule
+            <Plus size={18} /> Add Condition
           </button>
         </div>
 
-        <div className="mt-8 flex justify-end gap-4">
-          <button type="button" onClick={onClose}>
+        {/* Footer Actions */}
+        <div className="mt-8 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-6 py-2.5 text-slate-600 font-medium hover:bg-slate-100 rounded-xl transition-colors"
+          >
             Discard
           </button>
           <button
             type="submit"
-            className="bg-slate-900 text-white px-8 py-2 rounded-xl flex items-center gap-2"
+            className="bg-slate-900 hover:bg-slate-800 text-white px-10 py-2.5 rounded-xl flex items-center gap-2 font-semibold shadow-lg shadow-slate-200 transition-all active:scale-95"
           >
-            <Save size={18} /> Save
+            <Save size={18} /> Save Segment
           </button>
         </div>
       </form>

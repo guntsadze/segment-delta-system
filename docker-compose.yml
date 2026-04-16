@@ -1,23 +1,52 @@
-version: '3.8'
+version: "3.8"
 
 services:
+  # --- მონაცემთა ბაზა ---
   postgres:
     image: postgres:15
     restart: always
     environment:
-      POSTGRES_USER: psg
-      POSTGRES_PASSWORD: psg@!@#$
+      POSTGRES_USER: segment_db_hkqc_user
+      POSTGRES_PASSWORD: kAHoK5LEa32pirWUdCgfcoMU8eFcVb7o
       POSTGRES_DB: segment_db
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  # --- რიგების მენეჯერი ---
   redis:
     image: redis:7-alpine
     restart: always
     ports:
       - "6379:6379"
+
+  # --- ბექენდი (NestJS) ---
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=postgresql://segment_db_hkqc_user:kAHoK5LEa32pirWUdCgfcoMU8eFcVb7o@dpg-d7fo33cvikkc739sqf90-a.oregon-postgres.render.com/segment_db_hkqc
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - postgres
+      - redis
+
+  # --- ფრონტენდი (Next.js) ---
+  ui:
+    build:
+      context: ./apps/ui
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+    depends_on:
+      - api
 
 volumes:
   postgres_data:

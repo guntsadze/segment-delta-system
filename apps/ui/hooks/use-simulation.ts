@@ -20,7 +20,9 @@ export const useSimulation = () => {
   }, []);
 
   useEffect(() => {
-    SimulationService.getCustomers().then(setCustomers);
+    SimulationService.getCustomers().then(
+      setCustomers as unknown as () => void,
+    );
 
     socket.on("segment:counts_update", ({ segmentId, delta }) => {
       addLog(
