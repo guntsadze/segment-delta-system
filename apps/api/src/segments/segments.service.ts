@@ -4,9 +4,9 @@ import { PrismaService } from 'prisma/prisma.service';
 
 @Injectable()
 export class SegmentsService {
-
-  constructor(private evaluationProducer: EvaluationProducer,
-    private readonly prisma: PrismaService
+  constructor(
+    private evaluationProducer: EvaluationProducer,
+    private readonly prisma: PrismaService,
   ) {}
 
   /**
@@ -16,14 +16,14 @@ export class SegmentsService {
     const segments = await this.prisma.segment.findMany({
       include: {
         _count: {
-          select: { members: true }
-        }
+          select: { members: true },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
 
     // ცოტა უფრო ლამაზი ფორმატი ფრონტენდისთვის
-    return segments.map(s => ({
+    return segments.map((s) => ({
       ...s,
       memberCount: s._count.members,
     }));
@@ -36,8 +36,8 @@ export class SegmentsService {
     return this.prisma.segment.findUnique({
       where: { id },
       include: {
-        _count: { select: { members: true } }
-      }
+        _count: { select: { members: true } },
+      },
     });
   }
 
@@ -46,23 +46,23 @@ export class SegmentsService {
    */
   async getMembers(id: string, page: number = 1, limit: number = 20) {
     const skip = (page - 1) * limit;
-    
+
     const [members, total] = await Promise.all([
       this.prisma.segmentMembership.findMany({
         where: { segmentId: id },
         include: { customer: true },
         skip,
         take: limit,
-        orderBy: { joinedAt: 'desc' }
+        orderBy: { joinedAt: 'desc' },
       }),
-      this.prisma.segmentMembership.count({ where: { segmentId: id } })
+      this.prisma.segmentMembership.count({ where: { segmentId: id } }),
     ]);
 
     return {
-      data: members.map(m => m.customer),
+      data: members.map((m) => m.customer),
       total,
       page,
-      lastPage: Math.ceil(total / limit)
+      lastPage: Math.ceil(total / limit),
     };
   }
 
@@ -73,7 +73,7 @@ export class SegmentsService {
     return this.prisma.segmentDelta.findMany({
       where: { segmentId: id },
       take: 20,
-      orderBy: { computedAt: 'desc' }
+      orderBy: { computedAt: 'desc' },
     });
   }
 
@@ -83,5 +83,53 @@ export class SegmentsService {
   async refresh(id: string) {
     await this.evaluationProducer.triggerEvaluation(id, 'manual');
     return { message: 'Evaluation triggered' };
+  }
+
+  /**
+   * ახალი სეგმენტის შექმნა
+   */
+  async create(data: { name: string; type: 'DYNAMIC' | 'STATIC'; rules: any }) {
+    const segment = await this.prisma.segment.create({
+      data: {
+        name: data.name,
+        type: data.type,
+        rules: data.rules,
+      },
+    });
+
+    // შექმნისთანავე გავუშვათ პირველი გადათვლა
+    await this.evaluationProducer.triggerEvaluation(
+      segment.id,
+      'initial_creation',
+    );
+    return segment;
+  }
+
+  /**
+   * სეგმენტის განახლება
+   */
+  async update(id: string, data: { name?: string; rules?: any }) {
+    const segment = await this.prisma.segment.update({
+      where: { id },
+      data,
+    });
+
+    // თუ წესები შეიცვალა, ხელახლა უნდა გადაითვალოს
+    if (data.rules) {
+      await this.evaluationProducer.triggerEvaluation(id, 'rules_updated');
+    }
+    return segment;
+  }
+
+  /**
+   * სეგმენტის წაშლა
+   */
+  async remove(id: string) {
+    // ჯერ ვშლით წევრობებს და დელტებს (FK constraint-ების გამო)
+    await this.prisma.segmentMembership.deleteMany({
+      where: { segmentId: id },
+    });
+    await this.prisma.segmentDelta.deleteMany({ where: { segmentId: id } });
+    return this.prisma.segment.delete({ where: { id } });
   }
 }

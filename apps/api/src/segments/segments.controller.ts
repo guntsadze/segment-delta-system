@@ -1,11 +1,21 @@
-import { Controller, Get, Post, Param, Query, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Param,
+  Query,
+  ParseIntPipe,
+  Body,
+  Delete,
+} from '@nestjs/common';
 import { SegmentsService } from './segments.service';
 import { PrismaService } from 'prisma/prisma.service';
 
 @Controller('segments')
 export class SegmentsController {
-  constructor(private segmentsService: SegmentsService,
-              private readonly prisma: PrismaService
+  constructor(
+    private segmentsService: SegmentsService,
+    private readonly prisma: PrismaService,
   ) {}
 
   @Get()
@@ -14,13 +24,13 @@ export class SegmentsController {
   }
 
   @Get('all/customers')
-async getAllCustomers() {
-  // უბრალოდ წამოვიღოთ პირველი 50 მომხმარებელი სიმულაციისთვის
-  return this.prisma.customer.findMany({
-    take: 50,
-    orderBy: { name: 'asc' }
-  });
-}
+  async getAllCustomers() {
+    // უბრალოდ წამოვიღოთ პირველი 50 მომხმარებელი სიმულაციისთვის
+    return this.prisma.customer.findMany({
+      take: 50,
+      orderBy: { name: 'asc' },
+    });
+  }
 
   @Get(':id')
   async findOne(@Param('id') id: string) {
@@ -43,5 +53,25 @@ async getAllCustomers() {
   @Post(':id/refresh')
   async refresh(@Param('id') id: string) {
     return this.segmentsService.refresh(id);
+  }
+
+  @Post()
+  async create(
+    @Body() data: { name: string; type: 'DYNAMIC' | 'STATIC'; rules: any },
+  ) {
+    return this.segmentsService.create(data);
+  }
+
+  @Post(':id')
+  async update(
+    @Param('id') id: string,
+    @Body() data: { name?: string; rules?: any },
+  ) {
+    return this.segmentsService.update(id, data);
+  }
+
+  @Delete(':id')
+  async remove(@Param('id') id: string) {
+    return this.segmentsService.remove(id);
   }
 }

@@ -6,8 +6,9 @@ import { PrismaService } from 'prisma/prisma.service';
 export class SimulationService {
   private readonly logger = new Logger(SimulationService.name);
 
-  constructor(private evaluationProducer: EvaluationProducer,
-    private readonly prisma: PrismaService
+  constructor(
+    private evaluationProducer: EvaluationProducer,
+    private readonly prisma: PrismaService,
   ) {}
 
   /**
@@ -29,30 +30,40 @@ export class SimulationService {
 
     // ტრანზაქციის შემდეგ ყველა დინამიური სეგმენტი უნდა გადამოწმდეს
     await this.triggerAllDynamicSegments('simulation:transaction');
-    
+
     return transaction;
   }
 
   /**
    * სიმულაცია: დროის გადაწევა (ძალიან მნიშვნელოვანია ტესტირებისთვის!)
    */
-  async advanceTime(days: number) {
-    this.logger.log(`Advancing time by ${days} days...`);
-    
-    // სინამდვილეში ჩვენ თარიღებს ვაკლებთ X დღეს
-    // ეს უფრო მარტივია, ვიდრე სისტემური დროის შეცვლა
-    await this.prisma.$executeRawUnsafe(`
-      UPDATE "Transaction" SET "createdAt" = "createdAt" - INTERVAL '${days} days'
-    `);
-    
-    await this.prisma.$executeRawUnsafe(`
-      UPDATE "Customer" SET "lastTransactionAt" = "lastTransactionAt" - INTERVAL '${days} days'
-    `);
+  async advanceTime(days: number, customerId?: string) {
+    this.logger.log(
+      `Advancing time by ${days} days for ${customerId || 'all users'}...`,
+    );
 
-    await this.triggerAllDynamicSegments('simulation:time_travel');
+    // 1. ტრანზაქციების განახლება
+    const transactionQuery = customerId
+      ? `UPDATE "Transaction" SET "createdAt" = "createdAt" - INTERVAL '${days} days' WHERE "customerId" = '${customerId}'`
+      : `UPDATE "Transaction" SET "createdAt" = "createdAt" - INTERVAL '${days} days'`;
+
+    // 2. მომხმარებლის ბოლო აქტივობის განახლება
+    const customerQuery = customerId
+      ? `UPDATE "Customer" SET "lastTransactionAt" = "lastTransactionAt" - INTERVAL '${days} days' WHERE "id" = '${customerId}'`
+      : `UPDATE "Customer" SET "lastTransactionAt" = "lastTransactionAt" - INTERVAL '${days} days'`;
+
+    await this.prisma.$executeRawUnsafe(transactionQuery);
+    await this.prisma.$executeRawUnsafe(customerQuery);
+
+    // 3. ტრიგერი
+    await this.triggerAllDynamicSegments(
+      customerId
+        ? `simulation:time_travel:${customerId}`
+        : 'simulation:time_travel',
+    );
+
     return { message: `Time advanced by ${days} days` };
   }
-
   /**
    * დამხმარე მეთოდი: ყველა დინამიური სეგმენტის რიგში ჩაგდება
    */

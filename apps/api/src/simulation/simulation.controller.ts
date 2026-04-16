@@ -11,7 +11,7 @@ export class SimulationController {
   }
 
   @Post('advance-time')
-  async advanceTime(@Body() body: { days: number }) {
-    return this.simulationService.advanceTime(body.days);
+  async advanceTime(@Body() body: { days: number; customerId?: string }) {
+    return this.simulationService.advanceTime(body.days, body.customerId);
   }
 }

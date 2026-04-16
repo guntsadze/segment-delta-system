@@ -5,8 +5,7 @@ import { PrismaService } from 'prisma/prisma.service';
 
 @Injectable()
 export class EvaluatorService {
-  // ვიყენებთ ჩვენს გენერირებულ კლიენტს
-constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * მთავარი მეთოდი: ითვლის სეგმენტის წევრებს
@@ -17,7 +16,7 @@ constructor(private readonly prisma: PrismaService) {}
     });
 
     if (!segment) throw new Error('Segment not found');
-    
+
     // თუ სეგმენტი სტატიკურია, უბრალოდ ვაბრუნებთ მის არსებულ წევრებს
     if (segment.type === 'STATIC') {
       const members = await this.prisma.segmentMembership.findMany({
@@ -81,7 +80,7 @@ constructor(private readonly prisma: PrismaService) {}
           where: { segmentId: condition.segmentId },
           select: { customerId: true },
         });
-        return new Set(members.map(m => m.customerId));
+        return new Set(members.map((m) => m.customerId));
     }
 
     return new Set(result.map((r) => r.customerId));
@@ -90,13 +89,16 @@ constructor(private readonly prisma: PrismaService) {}
   /**
    * აერთიანებს შედეგებს AND ან OR ლოგიკით
    */
-  private applyOperator(operator: 'AND' | 'OR', results: Set<string>[]): Set<string> {
+  private applyOperator(
+    operator: 'AND' | 'OR',
+    results: Set<string>[],
+  ): Set<string> {
     if (results.length === 0) return new Set();
     if (results.length === 1) return results[0];
 
     if (operator === 'AND') {
       // Intersection: მხოლოდ ის ID-ები, რომლებიც ყველა სეტშია
-      return results.reduce((a, b) => new Set([...a].filter(x => b.has(x))));
+      return results.reduce((a, b) => new Set([...a].filter((x) => b.has(x))));
     } else {
       // Union: ყველა ID ყველა სეტიდან
       return results.reduce((a, b) => new Set([...a, ...b]));
