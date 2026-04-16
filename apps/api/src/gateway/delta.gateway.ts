@@ -7,9 +7,12 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 
+const isProd = process.env.NODE_ENV === 'production';
+
 @WebSocketGateway({
   cors: {
-    origin: '*', // დეველოპმენტისთვის ყველას ვუშვებთ
+    origin: isProd ? process.env.FRONTEND_URL : true,
+    credentials: true,
   },
 })
 export class DeltaGateway implements OnGatewayConnection {

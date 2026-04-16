@@ -5,8 +5,10 @@ import nodeCron from 'node-cron';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  const isProd = process.env.NODE_ENV === 'production';
+
   app.enableCors({
-    origin: '*',
+    origin: isProd ? process.env.FRONTEND_URL : true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });

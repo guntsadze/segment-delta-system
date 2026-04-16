@@ -91,5 +91,59 @@ AI გამოყენებული იყო როგორც Senior Arch
 მთელი ფოკუსი გადამეტანა სისტემის არქიტექტურულ გამართულობაზე და ბიზნეს ლოგიკაზე.
 
 
+📊 არქიტექტურული დიაგრამა (Mermaid კოდი)
+
+flowchart TD
+    %% კომპონენტები
+    subgraph Trigger ["🧪 Triggers (სიმულაცია/API)"]
+        T1[Transaction Added]
+        T2[Time Advanced]
+        T3[Manual Refresh]
+    end
+
+    subgraph Queueing ["⚙️ BullMQ (Redis)"]
+        Q1[Evaluation Queue]
+        D1{jobId Dedup\nDebounce}
+    end
+
+    subgraph Engine ["🔬 Core Engine (Worker)"]
+        E1[Segment Evaluator\nRaw SQL Queries]
+        E2[Delta Calculator\nSet Comparison]
+        DB[(PostgreSQL\nMemberships & Deltas)]
+    end
+
+    subgraph Output ["📡 Outputs (Consumers)"]
+        WS[Socket.IO Gateway\nReal-time UI Update]
+        CAM[Campaign Consumer\nBackground Task]
+        CAS[Cascade Trigger\nDependent Segments]
+    end
+
+    %% კავშირები
+    T1 & T2 & T3 --> D1
+    D1 -->|1 Job per Segment| Q1
+    Q1 --> E1
+    E1 --> E2
+    E2 <--> DB
+    
+    E2 --> WS
+    E2 --> CAM
+    E2 -->|Re-queue| CAS
+    CAS --> Q1
+
+    %% სტილები
+    style D1 fill:#f96,stroke:#333,stroke-width:2px
+    style Q1 fill:#3498db,color:#fff
+    style E2 fill:#2ecc71,color:#fff
+
+
+API → Queue: როცა მონაცემი იცვლება, API არ იწყებს მის გადამუშავებას. ის მხოლოდ დავალებას აგდებს BullMQ-ში (Redis-ზე).
+Queue → Worker: Worker-ი (ბექენდი) მშვიდად იღებს დავალებას და ეძახის Evaluator-ს.
+Worker → DB: Evaluator აკეთებს Raw SQL მოთხოვნებს ბაზაში, რომ იპოვოს წევრები.
+Worker → WS/Consumers: მას შემდეგ, რაც დელტა (სხვაობა) დაითვლება, Worker-ი სიგნალს უგზავნის ფრონტენდს (Socket.IO) და სხვა პროცესებს.
+
+მონაცემი შეიცვალა (Transaction) ➡️ ჩავარდა რიგში (Queue) ➡️ გადაითვალა წესები (SQL) ➡️ შედარდა ძველ მონაცემებს (Delta) ➡️ ჩაიწერა ბაზაში ➡️ გაიგზავნა ფრონტენდზე (Socket.IO).
+
+
+
 ავტორი: დიმიტრი გუნცაძე
 პროექტის სტატუსი: Production Ready 🚀🏆
