@@ -16,7 +16,9 @@ async function bootstrap() {
     await fetch('https://segment-delta-system.onrender.com');
   });
 
-  await app.listen(3001, '0.0.0.0');
-  console.log(`Application is running on: ${await app.getUrl()}`);
+  const port = process.env.PORT ?? 5000;
+  await app.listen(port, '0.0.0.0');
+
+  console.log(`🚀 Server is running on port ${port}`);
 }
 bootstrap();
