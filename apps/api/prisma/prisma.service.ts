@@ -4,20 +4,28 @@ import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
   private pool: Pool;
 
   constructor() {
     // 1. ვქმნით Postgres Pool-ს
     const connectionString = process.env.DATABASE_URL;
-    const pool = new Pool({ connectionString });
-    
+    const pool = new Pool({
+      connectionString,
+      ssl: {
+        rejectUnauthorized: false, // Render-ისთვის
+      },
+    });
+
     // 2. ვქმნით ადაპტერს
     const adapter = new PrismaPg(pool);
 
     // 3. გადავცემთ ადაპტერს მშობელ კლასს (PrismaClient)
     super({ adapter });
-    
+
     this.pool = pool;
   }
 

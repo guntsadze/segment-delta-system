@@ -8,7 +8,16 @@ dotenv.config();
 
 // 2. კავშირის მომზადება (Adapter Pattern - Prisma 7-ის მოთხოვნა)
 const connectionString = `${process.env.DATABASE_URL}`;
-const pool = new Pool({ connectionString });
+
+if (!connectionString) {
+  throw new Error('DATABASE_URL is not defined in your .env file');
+}
+const pool = new Pool({
+  connectionString,
+  ssl: {
+    rejectUnauthorized: false, // გავთიშე რადგან გამეშვა რენდერის ბაზაზე seed მონაცემები
+  },
+});
 const adapter = new PrismaPg(pool);
 
 // 3. კლიენტის შექმნა ადაპტერით
@@ -29,13 +38,13 @@ async function main() {
   for (let i = 1; i <= 60; i++) {
     let lastTxDate = new Date();
     let totalSpent = 0;
-    
+
     if (i <= 20) {
       lastTxDate.setDate(now.getDate() - (i % 10));
-      totalSpent = 100 + (i * 5);
+      totalSpent = 100 + i * 5;
     } else if (i <= 35) {
       lastTxDate.setDate(now.getDate() - 20);
-      totalSpent = 600 + (i * 10);
+      totalSpent = 600 + i * 10;
     } else if (i <= 50) {
       lastTxDate.setDate(now.getDate() - 100);
       totalSpent = 50;
@@ -67,9 +76,9 @@ async function main() {
       type: SegmentType.DYNAMIC,
       rules: {
         operator: 'AND',
-        conditions: [{ type: 'INACTIVE_AFTER_ACTIVE', inactiveDays: 90 }]
-      }
-    }
+        conditions: [{ type: 'INACTIVE_AFTER_ACTIVE', inactiveDays: 90 }],
+      },
+    },
   });
 
   const vipCustomers = await prisma.segment.create({
@@ -78,9 +87,9 @@ async function main() {
       type: SegmentType.DYNAMIC,
       rules: {
         operator: 'AND',
-        conditions: [{ type: 'MIN_SPEND_IN_DAYS', days: 60, minAmount: 500 }]
-      }
-    }
+        conditions: [{ type: 'MIN_SPEND_IN_DAYS', days: 60, minAmount: 500 }],
+      },
+    },
   });
 
   await prisma.segment.create({
@@ -89,9 +98,11 @@ async function main() {
       type: SegmentType.DYNAMIC,
       rules: {
         operator: 'AND',
-        conditions: [{ type: 'MIN_TRANSACTIONS_IN_DAYS', days: 30, minCount: 1 }]
-      }
-    }
+        conditions: [
+          { type: 'MIN_TRANSACTIONS_IN_DAYS', days: 30, minCount: 1 },
+        ],
+      },
+    },
   });
 
   await prisma.segment.create({
@@ -102,10 +113,10 @@ async function main() {
         operator: 'AND',
         conditions: [
           { type: 'IN_SEGMENT', segmentId: riskGroup.id },
-          { type: 'IN_SEGMENT', segmentId: vipCustomers.id }
-        ]
-      }
-    }
+          { type: 'IN_SEGMENT', segmentId: vipCustomers.id },
+        ],
+      },
+    },
   });
 
   await prisma.segment.create({
@@ -113,8 +124,8 @@ async function main() {
       name: 'March Campaign Audience',
       type: SegmentType.STATIC,
       rules: {},
-      frozenAt: new Date()
-    }
+      frozenAt: new Date(),
+    },
   });
 
   console.log('✅ Seeding successful!');

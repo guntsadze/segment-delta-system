@@ -58,7 +58,7 @@ export default function SegmentsPage() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {segments.map((s) => (
+        {segments?.map((s) => (
           <SegmentCard
             key={s.id}
             segment={s}

@@ -13,7 +13,7 @@ export const useSegments = () => {
     try {
       setIsLoading(true);
       const data = await SegmentsService.getAll();
-      setSegments(data);
+      setSegments(data as any);
     } catch (err) {
       setError("ვერ მოხერხდა სეგმენტების ჩატვირთვა");
     } finally {

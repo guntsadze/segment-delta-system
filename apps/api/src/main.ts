@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import nodeCron from 'node-cron';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -8,6 +9,11 @@ async function bootstrap() {
     origin: '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
+  });
+
+  // პატარა ჩეთი ;დ რომ render სერვერი არ გაგვეთიშოს
+  nodeCron.schedule('*/14 * * * *', async () => {
+    await fetch('https://segment-delta-system.onrender.com');
   });
 
   await app.listen(3001, '0.0.0.0');

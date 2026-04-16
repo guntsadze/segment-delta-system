@@ -3,7 +3,8 @@ import { SegmentFormValues } from "@/types/segment";
 
 export const SegmentsService = {
   async getAll() {
-    return api.get("/segments");
+    const res = await api.get("/segments");
+    return res;
   },
 
   async getById(id: string) {
