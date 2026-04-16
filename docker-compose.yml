@@ -1,20 +1,20 @@
 version: "3.8"
 
 services:
-  # --- მონაცემთა ბაზა ---
+  # --- ლოკალური მონაცემთა ბაზა (პაროლის გარეშე) ---
   postgres:
     image: postgres:15
     restart: always
     environment:
-      POSTGRES_USER: segment_db_hkqc_user
-      POSTGRES_PASSWORD: kAHoK5LEa32pirWUdCgfcoMU8eFcVb7o
-      POSTGRES_DB: segment_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=segment_db
+      - POSTGRES_HOST_AUTH_METHOD=trust
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  # --- რიგების მენეჯერი ---
+  # --- რიგების მენეჯერი (Redis) ---
   redis:
     image: redis:7-alpine
     restart: always
@@ -29,7 +29,7 @@ services:
     ports:
       - "3001:3001"
     environment:
-      - DATABASE_URL=postgresql://segment_db_hkqc_user:kAHoK5LEa32pirWUdCgfcoMU8eFcVb7o@dpg-d7fo33cvikkc739sqf90-a.oregon-postgres.render.com/segment_db_hkqc
+      - DATABASE_URL=postgresql://postgres@postgres:5432/segment_db?schema=public&sslmode=disable
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     depends_on:
