@@ -75,4 +75,12 @@ export class SegmentsController {
   async remove(@Param('id') id: string) {
     return this.segmentsService.remove(id);
   }
+
+  @Post(':id/add-member')
+  async addMember(
+    @Param('id') id: string,
+    @Body() body: { customerId: string },
+  ) {
+    return this.segmentsService.addMemberManually(id, body.customerId);
+  }
 }

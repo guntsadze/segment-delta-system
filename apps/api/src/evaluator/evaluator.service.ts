@@ -86,6 +86,12 @@ export class EvaluatorService {
           select: { customerId: true },
         });
         return new Set(members.map((m) => m.customerId));
+
+      case 'ALL_CUSTOMERS':
+        result = await this.prisma.$queryRawUnsafe(`
+          SELECT "id" AS "customerId" FROM "Customer"
+        `);
+        break;
     }
 
     return new Set(result.map((r) => r.customerId));

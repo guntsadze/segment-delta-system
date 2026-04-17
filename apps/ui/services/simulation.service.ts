@@ -26,4 +26,8 @@ export const SimulationService = {
   async bulkImport(count: number) {
     return api.post("/simulation/bulk-import", { count });
   },
+
+  async addToStaticSegment(segmentId: string, customerId: string) {
+    return api.post(`/segments/${segmentId}/add-member`, { customerId });
+  },
 };

@@ -154,4 +154,29 @@ export class SegmentsService {
     await this.prisma.segmentDelta.deleteMany({ where: { segmentId: id } });
     return this.prisma.segment.delete({ where: { id } });
   }
+
+  async addMemberManually(segmentId: string, customerId: string) {
+    // ვქმნით წევრობას. upsert-ს ვიყენებთ, რომ დუბლიკატზე არ დაერორდეს
+    const membership = await this.prisma.segmentMembership.upsert({
+      where: {
+        segmentId_customerId: { segmentId, customerId },
+      },
+      update: {}, // თუ უკვე არის, არაფერი შეცვალო
+      create: { segmentId, customerId },
+    });
+
+    // ხელით ჩამატებისას მაინც უნდა შევქმნათ დელტა ჩანაწერი
+    await this.prisma.segmentDelta.create({
+      data: {
+        segmentId,
+        added: [customerId],
+        removed: [],
+        addedCount: 1,
+        removedCount: 0,
+        triggeredBy: 'manual_addition',
+      },
+    });
+
+    return membership;
+  }
 }

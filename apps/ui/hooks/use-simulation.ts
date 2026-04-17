@@ -5,6 +5,7 @@ import { SegmentsService } from "@/services/segments.service";
 
 export const useSimulation = () => {
   const [customers, setCustomers] = useState<any[]>([]);
+  const [segments, setSegments] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -46,6 +47,10 @@ export const useSimulation = () => {
       setCustomers as unknown as () => void,
     );
 
+    SegmentsService.getAll().then((res) => {
+      setSegments(res.data || res);
+    });
+
     socket.on("segment:counts_update", ({ segmentId, delta }) => {
       addLog(
         `Segment ${segmentId} updated: +${delta.added.length}, -${delta.removed.length}`,
@@ -78,13 +83,31 @@ export const useSimulation = () => {
     }
   };
 
+  const handleManualAdd = async (data: {
+    segmentId: string;
+    customerId: string;
+  }) => {
+    setLoading(true);
+    try {
+      await SimulationService.addToStaticSegment(
+        data.segmentId,
+        data.customerId,
+      );
+      alert("მომხმარებელი წარმატებით დაემატა სეგმენტს!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     customers,
+    segments,
     logs,
     loading,
     executeTransaction,
     travelInTime,
     updateCustomer,
     bulkImport,
+    handleManualAdd,
   };
 };
