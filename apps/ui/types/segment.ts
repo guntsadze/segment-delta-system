@@ -8,9 +8,10 @@ export const segmentSchema = z.object({
     conditions: z.array(
       z.object({
         type: z.string(),
-        days: z.number(),
-        minAmount: z.number(),
-        minCount: z.number(),
+        days: z.number().optional().nullable(),
+        inactiveDays: z.number().optional().nullable(),
+        minAmount: z.number().optional().nullable(),
+        minCount: z.number().optional().nullable(),
         segmentId: z.string().optional(),
       }),
     ),

@@ -87,8 +87,8 @@ export class DeltaService {
 
       return {
         segmentId,
-        added: addedCustomers, // ახლა ეს არის [{id: '...', email: '...'}]
-        removed: removedCustomers, // ესეც იგივე სტრუქტურის
+        added: addedCustomers, 
+        removed: removedCustomers, 
         deltaId: delta.id,
       };
     });

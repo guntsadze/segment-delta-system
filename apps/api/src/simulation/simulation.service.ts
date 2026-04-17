@@ -77,4 +77,50 @@ export class SimulationService {
       await this.evaluationProducer.triggerEvaluation(segment.id, reason);
     }
   }
+  /**
+   * სიმულაცია: მომხმარებლის მონაცემების განახლება
+   */
+  async updateCustomer(customerId: string, data: any) {
+    const updated = await this.prisma.customer.update({
+      where: { id: customerId },
+      data: {
+        ...data,
+        lastTransactionAt: new Date(),
+      },
+    });
+
+    await this.triggerAllDynamicSegments('simulation:customer_update');
+    return updated;
+  }
+
+  /**
+   * სიმულაცია: 50K იმპორტი (Stress Test + Chunking)
+   */
+  async bulkImport(count: number) {
+    this.logger.log(`Starting bulk import of ${count} customers...`);
+
+    const CHUNK_SIZE = 100;
+    const totalChunks = Math.ceil(count / CHUNK_SIZE);
+
+    for (let i = 0; i < totalChunks; i++) {
+      // 1. შევქმნათ 100 იუზერი მეხსიერებაში
+      const batch = Array.from({ length: CHUNK_SIZE }).map((_, j) => ({
+        name: `Bulk User ${i * CHUNK_SIZE + j}`,
+        email: `bulk_${i}_${j}_${Date.now()}@example.com`,
+        totalSpent: Math.random() * 1000,
+      }));
+
+      // 2. ჩავწეროთ ბაზაში
+      await this.prisma.customer.createMany({ data: batch });
+
+      // 3. რიგში დავალებას ვაგდებთ მხოლოდ პორციის ბოლოს
+      // ეს უზრუნველყოფს, რომ სისტემა არ "დაიხრჩოს" 50,000 ცალკეული დავალებით
+      await this.triggerAllDynamicSegments(`simulation:bulk_import_chunk_${i}`);
+
+      // მცირე შესვენება (Backpressure), რომ ბაზას ამოუნთქვის საშუალება მივცეთ
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+
+    return { message: `Bulk import of ${count} customers completed.` };
+  }
 }

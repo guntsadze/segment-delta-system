@@ -1,12 +1,30 @@
 "use client";
 import { useForm } from "react-hook-form";
-import { Play, PlusCircle, FastForward } from "lucide-react";
+import {
+  Play,
+  PlusCircle,
+  FastForward,
+  UserSquare2,
+  Terminal,
+} from "lucide-react";
 import { useSimulation } from "@/hooks/use-simulation";
 import { LogViewer } from "@/components/simulation/LogViewer";
+import { SegmentsService } from "@/services/segments.service";
 
 export function SimulationContainer() {
-  const { customers, logs, loading, executeTransaction, travelInTime } =
-    useSimulation();
+  const {
+    customers,
+    logs,
+    loading,
+    executeTransaction,
+    travelInTime,
+    updateCustomer,
+    bulkImport,
+  } = useSimulation();
+
+  const updateForm = useForm({
+    defaultValues: { customerId: "", name: "" },
+  });
 
   const transactionForm = useForm({
     defaultValues: { customerId: "", amount: 100 },
@@ -24,6 +42,75 @@ export function SimulationContainer() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="space-y-6">
+          <form
+            onSubmit={updateForm.handleSubmit((d) =>
+              updateCustomer(d.customerId, d.name),
+            )}
+            className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm"
+          >
+            <h3 className="font-bold mb-4 flex items-center gap-2 text-slate-800">
+              <UserSquare2 size={18} className="text-purple-500" /> მონაცემების
+              განახლება
+            </h3>
+            <div className="space-y-4">
+              <select
+                {...updateForm.register("customerId")}
+                className="w-full p-2 border rounded-lg bg-slate-50 outline-none"
+              >
+                <option value="">აირჩიე მომხმარებელი</option>
+                {customers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="text"
+                placeholder="ახალი სახელი"
+                {...updateForm.register("name")}
+                className="w-full p-2 border rounded-lg bg-slate-50"
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-purple-600 text-white py-2 rounded-lg font-bold hover:bg-purple-700 transition"
+              >
+                განახლება
+              </button>
+            </div>
+          </form>
+
+          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm border-t-4 border-t-red-500">
+            <h3 className="font-bold mb-2 flex items-center gap-2 text-slate-800">
+              <Terminal size={18} className="text-red-500" /> Bulk Stress Test
+            </h3>
+            <p className="text-[10px] text-slate-500 mb-4 uppercase font-bold tracking-wider">
+              სისტემის დატვირთვა პორციებად (Chunking)
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={() => bulkImport(100)}
+                disabled={loading}
+                className="bg-slate-100 py-2 rounded-lg text-xs font-bold hover:bg-slate-200"
+              >
+                100 იუზერი
+              </button>
+              <button
+                onClick={() => bulkImport(1000)}
+                disabled={loading}
+                className="bg-slate-100 py-2 rounded-lg text-xs font-bold hover:bg-slate-200"
+              >
+                1K იუზერი
+              </button>
+              <button
+                onClick={() => bulkImport(10000)}
+                disabled={loading}
+                className="bg-red-50 py-2 rounded-lg text-xs font-bold text-red-600 hover:bg-red-100 border border-red-100"
+              >
+                10K (Stress)
+              </button>
+            </div>
+          </div>
           {/* Transaction Card */}
           <form
             onSubmit={transactionForm.handleSubmit((d) =>

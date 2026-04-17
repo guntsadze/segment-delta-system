@@ -97,6 +97,11 @@ export class SegmentsService {
         type: data.type,
         rules: data.rules as any,
       },
+      include: {
+        _count: {
+          select: { members: true },
+        },
+      },
     });
 
     // შექმნისთანავე გავუშვათ პირველი გადათვლა
@@ -104,7 +109,10 @@ export class SegmentsService {
       segment.id,
       'initial_creation',
     );
-    return segment;
+    return {
+      ...segment,
+      memberCount: segment._count?.members || 0,
+    };
   }
 
   /**
@@ -118,13 +126,21 @@ export class SegmentsService {
         type: data.type,
         rules: data.rules as any,
       },
+      include: {
+        _count: {
+          select: { members: true },
+        },
+      },
     });
 
     // თუ წესები შეიცვალა, ხელახლა უნდა გადაითვალოს
     if (data.rules) {
       await this.evaluationProducer.triggerEvaluation(id, 'rules_updated');
     }
-    return segment;
+    return {
+      ...segment,
+      memberCount: segment._count?.members || 0,
+    };
   }
 
   /**

@@ -18,4 +18,12 @@ export const SimulationService = {
       customerId: customerId === "all" ? undefined : customerId,
     });
   },
+
+  async updateCustomer(customerId: string, data: any) {
+    return api.post("/simulation/update-customer", { customerId, data });
+  },
+
+  async bulkImport(count: number) {
+    return api.post("/simulation/bulk-import", { count });
+  },
 };

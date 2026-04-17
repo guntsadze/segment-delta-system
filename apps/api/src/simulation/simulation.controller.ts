@@ -14,4 +14,14 @@ export class SimulationController {
   async advanceTime(@Body() body: { days: number; customerId?: string }) {
     return this.simulationService.advanceTime(body.days, body.customerId);
   }
+
+  @Post('update-customer')
+  async updateCustomer(@Body() body: { customerId: string; data: any }) {
+    return this.simulationService.updateCustomer(body.customerId, body.data);
+  }
+
+  @Post('bulk-import')
+  async bulkImport(@Body() body: { count: number }) {
+    return this.simulationService.bulkImport(body.count);
+  }
 }

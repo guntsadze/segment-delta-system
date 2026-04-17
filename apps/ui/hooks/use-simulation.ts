@@ -1,11 +1,33 @@
 import { useState, useEffect, useCallback } from "react";
 import { SimulationService } from "@/services/simulation.service";
 import { socket } from "@/lib/socket";
+import { SegmentsService } from "@/services/segments.service";
 
 export const useSimulation = () => {
   const [customers, setCustomers] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const updateCustomer = async (customerId: string, name: string) => {
+    setLoading(true);
+    try {
+      await SimulationService.updateCustomer(customerId, { name });
+      addLog(`Success: Customer name updated to "${name}".`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const bulkImport = async (count: number) => {
+    setLoading(true);
+    try {
+      addLog(`Starting Bulk Import of ${count} users...`, "action");
+      await SimulationService.bulkImport(count);
+      addLog(`Success: ${count} users imported and queued.`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const addLog = useCallback((message: string, type = "action") => {
     setLogs((prev) => [
@@ -56,5 +78,13 @@ export const useSimulation = () => {
     }
   };
 
-  return { customers, logs, loading, executeTransaction, travelInTime };
+  return {
+    customers,
+    logs,
+    loading,
+    executeTransaction,
+    travelInTime,
+    updateCustomer,
+    bulkImport,
+  };
 };
