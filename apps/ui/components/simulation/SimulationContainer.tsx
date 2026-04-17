@@ -91,8 +91,8 @@ export function SimulationContainer() {
         <TransactionForm
           customers={customers}
           loading={loading}
-          onSubmit={(id, amt) => {
-            executeTransaction(id, amt);
+          onSubmit={(id, amt, count) => {
+            executeTransaction(id, amt, count);
             close();
           }}
         />

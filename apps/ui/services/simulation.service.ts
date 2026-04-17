@@ -7,8 +7,8 @@ export const SimulationService = {
   },
 
   // ტრანზაქციის დამატება
-  async addTransaction(customerId: string, amount: number) {
-    return api.post("/simulation/transaction", { customerId, amount });
+  async addTransaction(customerId: string, amount: number, count: number) {
+    return api.post("/simulation/transaction", { customerId, amount, count });
   },
 
   // დროის გადაწევა

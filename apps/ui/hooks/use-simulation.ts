@@ -63,10 +63,14 @@ export const useSimulation = () => {
     };
   }, [addLog]);
 
-  const executeTransaction = async (customerId: string, amount: number) => {
+  const executeTransaction = async (
+    customerId: string,
+    amount: number,
+    count: number,
+  ) => {
     setLoading(true);
     try {
-      await SimulationService.addTransaction(customerId, amount);
+      await SimulationService.addTransaction(customerId, amount, count);
       addLog(`Success: $${amount} charged to customer.`);
     } finally {
       setLoading(false);

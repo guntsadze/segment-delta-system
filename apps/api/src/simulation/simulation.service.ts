@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EvaluationProducer } from '../queue/evaluation.producer';
 import { PrismaService } from 'prisma/prisma.service';
+import { Transaction } from 'node_modules/.prisma/client';
 
 @Injectable()
 export class SimulationService {
@@ -14,16 +15,30 @@ export class SimulationService {
   /**
    * სიმულაცია: ახალი ტრანზაქცია
    */
-  async addTransaction(customerId: string, amount: number) {
-    const transaction = await this.prisma.transaction.create({
-      data: { customerId, amount },
-    });
+  async addTransaction(customerId: string, amount: number, count: number = 1) {
+    this.logger.log(
+      `Adding ${count} transactions for customer ${customerId} with amount ${amount}...`,
+    );
+
+    const transactions: Transaction[] = [];
+    let totalIncrement = 0;
+
+    for (let i = 0; i < count; i++) {
+      const transaction = await this.prisma.transaction.create({
+        data: {
+          customerId,
+          amount: amount,
+        },
+      });
+      transactions.push(transaction);
+      totalIncrement += amount;
+    }
 
     // განვაახლოთ მომხმარებლის ჯამური დახარჯვა და ბოლო ტრანზაქციის დრო
     await this.prisma.customer.update({
       where: { id: customerId },
       data: {
-        totalSpent: { increment: amount },
+        totalSpent: { increment: totalIncrement },
         lastTransactionAt: new Date(),
       },
     });
@@ -31,7 +46,7 @@ export class SimulationService {
     // ტრანზაქციის შემდეგ ყველა დინამიური სეგმენტი უნდა გადამოწმდეს
     await this.triggerAllDynamicSegments('simulation:transaction');
 
-    return transaction;
+    return transactions;
   }
 
   /**

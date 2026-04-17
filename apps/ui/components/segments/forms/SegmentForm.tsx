@@ -28,7 +28,7 @@ export const SegmentForm = ({
         ...initialData,
         rules: {
           ...initialData.rules,
-          conditions: initialData.rules.conditions.map((cond: any) => ({
+          conditions: initialData?.rules?.conditions?.map((cond: any) => ({
             ...cond,
             segmentId: cond.segmentId,
             days:

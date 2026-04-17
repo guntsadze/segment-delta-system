@@ -1,21 +1,24 @@
 "use client";
-import { ReactNode } from "react";
+import { forwardRef, ReactNode } from "react";
 
 // --- INPUT COMPONENT ---
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label: string;
 }
 
-export const FormInput = ({ label, ...props }: InputProps) => (
-  <div className="space-y-1 w-full">
-    <label className="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-wider">
-      {label}
-    </label>
-    <input
-      {...props}
-      className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-sm"
-    />
-  </div>
+export const FormInput = forwardRef<HTMLInputElement, InputProps>(
+  ({ label, ...props }, ref) => (
+    <div className="space-y-1 w-full">
+      <label className="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-wider">
+        {label}
+      </label>
+      <input
+        {...props}
+        ref={ref}
+        className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-sm"
+      />
+    </div>
+  ),
 );
 
 // --- SELECT COMPONENT ---

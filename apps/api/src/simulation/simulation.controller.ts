@@ -6,8 +6,14 @@ export class SimulationController {
   constructor(private simulationService: SimulationService) {}
 
   @Post('transaction')
-  async addTransaction(@Body() body: { customerId: string; amount: number }) {
-    return this.simulationService.addTransaction(body.customerId, body.amount);
+  async addTransaction(
+    @Body() body: { customerId: string; amount: number; count?: number },
+  ) {
+    return this.simulationService.addTransaction(
+      body.customerId,
+      body.amount,
+      body.count,
+    );
   }
 
   @Post('advance-time')
