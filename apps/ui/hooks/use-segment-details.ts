@@ -35,7 +35,11 @@ export const useSegmentDetails = (id: string) => {
     };
   }, [id, loadData]);
 
-  const refreshSegment = () => SegmentsService.refresh(id);
+  const refreshSegment = async () => {
+    setLoading(true);
+    await SegmentsService.refresh(id);
+    await loadData();
+  };
 
   return { segment, members, feed, loading, refreshSegment };
 };
