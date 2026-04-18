@@ -99,14 +99,27 @@ export function SegmentDetailView() {
                 <div className="text-[10px] text-slate-500 mb-1 flex items-center gap-1">
                   <Clock size={10} /> {event.timestamp}
                 </div>
-                {event.added.length > 0 && (
-                  <div className="text-green-400 text-sm flex items-center gap-2">
-                    <UserPlus size={14} /> +{event.added.length} დაემატა
+                {event.addedCount > 0 && (
+                  <div className="text-green-400 text-sm">
+                    <div className="flex items-center gap-2">
+                      <UserPlus size={14} />
+                      <span>{event.addedCount} დაემატა:</span>
+                    </div>
+                    <div className="text-[11px] text-slate-400 pl-6 break-words italic">
+                      {event.addedSummary}
+                    </div>
                   </div>
                 )}
-                {event.removed.length > 0 && (
-                  <div className="text-red-400 text-sm flex items-center gap-2">
-                    <UserMinus size={14} /> -{event.removed.length} გავიდა
+
+                {event.removedCount > 0 && (
+                  <div className="text-red-400 text-sm mt-2">
+                    <div className="flex items-center gap-2">
+                      <UserMinus size={14} />
+                      <span>{event.removedCount} გავიდა:</span>
+                    </div>
+                    <div className="text-[11px] text-slate-400 pl-6 break-words italic">
+                      {event.removedSummary}
+                    </div>
                   </div>
                 )}
               </div>

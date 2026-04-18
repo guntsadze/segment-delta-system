@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { SegmentsService } from "@/services/segments.service";
 import { socket } from "@/lib/socket";
+import { DeltaService } from "@/services/delta.service";
 
 export const useSegmentDetails = (id: string) => {
   const [segment, setSegment] = useState<any>(null);
@@ -10,12 +11,14 @@ export const useSegmentDetails = (id: string) => {
 
   const loadData = useCallback(async () => {
     try {
-      const [seg, mems] = await Promise.all([
+      const [seg, mems, history] = await Promise.all([
         SegmentsService.getById(id),
         SegmentsService.getMembers(id),
+        DeltaService.getDeltas(id),
       ]);
       setSegment(seg);
       setMembers(mems);
+      setFeed(history);
     } finally {
       setLoading(false);
     }
@@ -24,23 +27,7 @@ export const useSegmentDetails = (id: string) => {
   useEffect(() => {
     loadData();
     socket.emit("join-segment", id);
-
-    socket.on("segment:delta", (data) => {
-      // ახალი ივენთის დამატება ფიდში
-      setFeed((prev) =>
-        [
-          {
-            id: Math.random(),
-            timestamp: new Date().toLocaleTimeString(),
-            ...data,
-          },
-          ...prev,
-        ].slice(0, 20),
-      );
-
-      // წევრების სიის განახლება
-      SegmentsService.getMembers(id).then(setMembers);
-    });
+    socket.on("segment:update_event", loadData);
 
     return () => {
       socket.emit("leave-segment", id);

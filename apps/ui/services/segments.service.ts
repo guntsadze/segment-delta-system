@@ -23,10 +23,6 @@ export const SegmentsService = {
     return api.delete(`/segments/${id}`);
   },
 
-  async getDeltas(id: string) {
-    return api.get(`/segments/${id}/deltas`);
-  },
-
   async refresh(id: string) {
     return api.post(`/segments/${id}/refresh`, {});
   },

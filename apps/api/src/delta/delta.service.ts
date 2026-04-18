@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EvaluatorService } from '../evaluator/evaluator.service';
 import { PrismaService } from 'prisma/prisma.service';
+import { getLogType } from 'src/common/utils/log-helper';
 
 @Injectable()
 export class DeltaService {
@@ -87,10 +88,93 @@ export class DeltaService {
 
       return {
         segmentId,
-        added: addedCustomers, 
-        removed: removedCustomers, 
+        added: addedCustomers,
+        removed: removedCustomers,
         deltaId: delta.id,
       };
     });
+  }
+
+  /**
+   *  დამხმარე მეთოდი: ID-ების მიხედვით დამიბრუნებს სახელებს
+   */
+  private async hydrateNames(addedIds: string[], removedIds: string[]) {
+    const [addedUsers, removedUsers] = await Promise.all([
+      this.prisma.customer.findMany({
+        where: { id: { in: addedIds } },
+        select: { name: true },
+      }),
+      this.prisma.customer.findMany({
+        where: { id: { in: removedIds } },
+        select: { name: true },
+      }),
+    ]);
+
+    return {
+      addedSummary: addedUsers.map((u) => u.name).join(', '),
+      removedSummary: removedUsers.map((u) => u.name).join(', '),
+    };
+  }
+
+  /**
+   *  კონკრეტული სეგმენტის ისტორია
+   */
+  async getDeltas(id: string) {
+    const deltas = await this.prisma.segmentDelta.findMany({
+      where: { segmentId: id },
+      take: 20,
+      orderBy: { computedAt: 'desc' },
+    });
+
+    return Promise.all(
+      deltas.map(async (d) => {
+        // 🎯 ვიყენებთ დამხმარე ფუნქციას
+        const { addedSummary, removedSummary } = await this.hydrateNames(
+          d.added,
+          d.removed,
+        );
+
+        return {
+          id: d.id,
+          timestamp: new Date(d.computedAt).toLocaleTimeString(),
+          addedCount: d.addedCount,
+          removedCount: d.removedCount,
+          addedSummary,
+          removedSummary,
+          triggeredBy: d.triggeredBy,
+        };
+      }),
+    );
+  }
+
+  /**
+   *  ყველა სეგმენტის ისტორია
+   */
+  async getAllDeltas() {
+    const deltas = await this.prisma.segmentDelta.findMany({
+      take: 50,
+      orderBy: { computedAt: 'desc' },
+      include: { segment: { select: { name: true } } },
+    });
+
+    return Promise.all(
+      deltas.map(async (d) => {
+        const { addedSummary, removedSummary } = await this.hydrateNames(
+          d.added,
+          d.removed,
+        );
+        const logType = getLogType(d.addedCount, d.removedCount);
+        let message = `სეგმენტი "${d.segment.name}" განახლდა.`;
+        if (addedSummary) message += ` დაემატა: ${addedSummary};`;
+        if (removedSummary) message += ` გავიდა: ${removedSummary};`;
+
+        return {
+          id: d.id,
+          time: new Date(d.computedAt).toLocaleTimeString(),
+          type: logType,
+          message: message,
+        };
+      }),
+    );
   }
 }

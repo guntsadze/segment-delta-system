@@ -48,11 +48,6 @@ export class SegmentsController {
     return this.segmentsService.getMembers(id, page);
   }
 
-  @Get(':id/deltas')
-  async getDeltas(@Param('id') id: string) {
-    return this.segmentsService.getDeltas(id);
-  }
-
   @Post(':id/refresh')
   async refresh(@Param('id') id: string) {
     return this.segmentsService.refresh(id);

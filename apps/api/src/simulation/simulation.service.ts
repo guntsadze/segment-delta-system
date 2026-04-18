@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { EvaluationProducer } from '../queue/evaluation.producer';
 import { PrismaService } from 'prisma/prisma.service';
 import { Transaction } from 'node_modules/.prisma/client';
+import { DeltaGateway } from 'src/gateway/delta.gateway';
 
 @Injectable()
 export class SimulationService {
@@ -10,6 +11,7 @@ export class SimulationService {
   constructor(
     private evaluationProducer: EvaluationProducer,
     private readonly prisma: PrismaService,
+    private gateway: DeltaGateway,
   ) {}
 
   /**
@@ -43,6 +45,17 @@ export class SimulationService {
       },
     });
 
+    const customer = await this.prisma.customer.findUnique({
+      where: { id: customerId },
+    });
+
+    this.gateway.server.emit('system:log', {
+      id: Math.random(),
+      message: `ტრანზაქცია: ${customer?.name}-ზე გატარდა $${amount} (${count}-ჯერ).`,
+      type: 'action',
+      time: new Date().toLocaleTimeString(),
+    });
+
     // ტრანზაქციის შემდეგ ყველა დინამიური სეგმენტი უნდა გადამოწმდეს
     await this.triggerAllDynamicSegments('simulation:transaction');
 
@@ -53,11 +66,15 @@ export class SimulationService {
    * სიმულაცია: დროის გადაწევა (ძალიან მნიშვნელოვანია ტესტირებისთვის!)
    */
   async advanceTime(days: number, customerId?: string) {
-    this.logger.log(
-      `Advancing time by ${days} days for ${customerId || 'all users'}...`,
-    );
+    let targetName = 'ყველა მომხმარებლისთვის';
 
-    // 1. ტრანზაქციების განახლება
+    if (customerId) {
+      const customer = await this.prisma.customer.findUnique({
+        where: { id: customerId },
+      });
+      targetName = `მომხმარებლისთვის: ${customer?.name}`;
+    }
+
     const transactionQuery = customerId
       ? `UPDATE "Transaction" SET "createdAt" = "createdAt" - INTERVAL '${days} days' WHERE "customerId" = '${customerId}'`
       : `UPDATE "Transaction" SET "createdAt" = "createdAt" - INTERVAL '${days} days'`;
@@ -70,7 +87,13 @@ export class SimulationService {
     await this.prisma.$executeRawUnsafe(transactionQuery);
     await this.prisma.$executeRawUnsafe(customerQuery);
 
-    // 3. ტრიგერი
+    this.gateway.server.emit('system:log', {
+      id: Math.random(),
+      message: `⏳ მომხმარებლის უმოქმედობა: გადავიწიეთ ${days} დღით უკან ${targetName}.`,
+      type: 'action',
+      time: new Date().toLocaleTimeString(),
+    });
+
     await this.triggerAllDynamicSegments(
       customerId
         ? `simulation:time_travel:${customerId}`
@@ -79,6 +102,7 @@ export class SimulationService {
 
     return { message: `Time advanced by ${days} days` };
   }
+
   /**
    * დამხმარე მეთოდი: ყველა დინამიური სეგმენტის რიგში ჩაგდება
    */
@@ -96,12 +120,29 @@ export class SimulationService {
    * სიმულაცია: მომხმარებლის მონაცემების განახლება
    */
   async updateCustomer(customerId: string, data: any) {
+    const oldCustomer = await this.prisma.customer.findUnique({
+      where: { id: customerId },
+      select: { name: true },
+    });
+
     const updated = await this.prisma.customer.update({
       where: { id: customerId },
       data: {
         ...data,
         lastTransactionAt: new Date(),
       },
+    });
+
+    const nameChangedMessage =
+      oldCustomer?.name !== updated.name
+        ? `(სახელი შეიცვალა: "${oldCustomer?.name}" ➔ "${updated.name}")`
+        : '';
+
+    this.gateway.server.emit('system:log', {
+      id: Math.random(),
+      message: `👤 პროფილი: ${updated.name}-ს მონაცემები განახლდა. ${nameChangedMessage}`,
+      type: 'action',
+      time: new Date().toLocaleTimeString(),
     });
 
     await this.triggerAllDynamicSegments('simulation:customer_update');
@@ -127,6 +168,13 @@ export class SimulationService {
 
       // 2. ჩავწეროთ ბაზაში
       await this.prisma.customer.createMany({ data: batch });
+
+      this.gateway.server.emit('system:log', {
+        id: Math.random(),
+        message: `📦 მომხმარებელი დაემატა ბაზაში ${i + 1}/${totalChunks}.`,
+        type: 'action',
+        time: new Date().toLocaleTimeString(),
+      });
 
       // 3. რიგში დავალებას ვაგდებთ მხოლოდ პორციის ბოლოს
       // ეს უზრუნველყოფს, რომ სისტემა არ "დაიხრჩოს" 50,000 ცალკეული დავალებით

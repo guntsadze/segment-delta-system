@@ -104,14 +104,19 @@ export class EvaluatorService {
     operator: 'AND' | 'OR',
     results: Set<string>[],
   ): Set<string> {
+    // 1. თუ პირობები საერთოდ არ გვაქვს, სეგმენტი ცარიელია
     if (results.length === 0) return new Set();
+
+    // 2. თუ მხოლოდ ერთი პირობაა, პირდაპირ იმას ვაბრუნებთ (ოპტიმიზაცია)
     if (results.length === 1) return results[0];
 
     if (operator === 'AND') {
-      // Intersection: მხოლოდ ის ID-ები, რომლებიც ყველა სეტშია
+      //  AND (თანაკვეთა): მომხმარებელი უნდა იყოს ყველა სიაში
+      // reduce იწყებს პირველი სეტიდან და სათითაოდ ადარებს დანარჩენებს
       return results.reduce((a, b) => new Set([...a].filter((x) => b.has(x))));
     } else {
-      // Union: ყველა ID ყველა სეტიდან
+      //  OR (გაერთიანება): მომხმარებელი შეიძლება იყოს ნებისმიერ სიაში
+      // უბრალოდ ყველა ID-ს ვყრით ერთ დიდ სეტში
       return results.reduce((a, b) => new Set([...a, ...b]));
     }
   }

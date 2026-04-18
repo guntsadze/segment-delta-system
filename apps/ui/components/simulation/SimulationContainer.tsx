@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
-import { Play, Terminal, UserPlus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Mail, Play, Terminal, UserPlus } from "lucide-react";
 import { useSimulation } from "@/hooks/use-simulation";
 import { LogViewer } from "@/components/simulation/LogViewer";
 import { Modal } from "@/components/ui/Modal";
@@ -10,6 +10,7 @@ import { ManualAddForm } from "./forms/ManualAddForm";
 import { TimeTravelForm } from "./forms/TimeTravelForm";
 import { StressTestActions } from "./forms/StressTestActions";
 import { SimulationSidebar } from "./SimulationSidebar";
+import { socket } from "@/lib/socket";
 
 export function SimulationContainer() {
   const {
@@ -25,6 +26,19 @@ export function SimulationContainer() {
   } = useSimulation();
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const close = () => setActiveModal(null);
+
+  const [campaignLogs, setCampaignLogs] = useState<any[]>([]);
+
+  useEffect(() => {
+    socket.on("campaign:log", (log) => {
+      console.log("🚀 ~ SimulationContainer ~ log:", log);
+      setCampaignLogs((prev) => [log, ...prev].slice(0, 5)); // ბოლო 5
+    });
+
+    return () => {
+      socket.off("campaign:log");
+    };
+  }, []);
 
   return (
     <div className="max-w-6xl mx-auto p-8">
@@ -60,6 +74,32 @@ export function SimulationContainer() {
         {/* --- MAIN CONTENT: LOGS --- */}
         <div className="lg:col-span-8">
           <LogViewer logs={logs} />
+        </div>
+      </div>
+
+      <div className="mt-8 bg-indigo-950 rounded-2xl p-6 border border-indigo-500/30 shadow-2xl">
+        <div className="flex items-center gap-3 mb-4 text-indigo-300">
+          <div className="p-2 bg-indigo-500/20 rounded-lg">
+            <Mail size={20} />
+          </div>
+          <h3 className="font-bold uppercase tracking-widest text-xs">
+            მესიჯები მომხმარებლებს
+          </h3>
+        </div>
+
+        <div className="space-y-3">
+          {campaignLogs.map((log) => (
+            <div
+              key={log.id}
+              className="flex gap-3 text-[11px] font-mono leading-relaxed animate-in slide-in-from-bottom-2"
+            >
+              <span className="text-indigo-500">[{log.time}]</span>
+              <span className="text-indigo-100">{log.message}</span>
+            </div>
+          ))}
+          {campaignLogs.length === 0 && (
+            <p className="text-indigo-700 italic text-[11px]">...</p>
+          )}
         </div>
       </div>
 

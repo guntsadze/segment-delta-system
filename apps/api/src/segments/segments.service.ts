@@ -3,12 +3,14 @@ import { EvaluationProducer } from '../queue/evaluation.producer';
 import { PrismaService } from 'prisma/prisma.service';
 import { CreateSegmentDto } from './dto/segments.dto';
 import { UpdateSegmentDto } from './dto/update-segments.dto';
+import { DeltaGateway } from 'src/gateway/delta.gateway';
 
 @Injectable()
 export class SegmentsService {
   constructor(
     private evaluationProducer: EvaluationProducer,
     private readonly prisma: PrismaService,
+    private gateway: DeltaGateway,
   ) {}
 
   /**
@@ -66,17 +68,6 @@ export class SegmentsService {
       page,
       lastPage: Math.ceil(total / limit),
     };
-  }
-
-  /**
-   * ბოლო 20 დელტა ცვლილება ისტორიისთვის
-   */
-  async getDeltas(id: string) {
-    return this.prisma.segmentDelta.findMany({
-      where: { segmentId: id },
-      take: 20,
-      orderBy: { computedAt: 'desc' },
-    });
   }
 
   /**
@@ -156,16 +147,23 @@ export class SegmentsService {
   }
 
   async addMemberManually(segmentId: string, customerId: string) {
-    // ვქმნით წევრობას. upsert-ს ვიყენებთ, რომ დუბლიკატზე არ დაერორდეს
+    const [customer, segment] = await Promise.all([
+      this.prisma.customer.findUnique({
+        where: { id: customerId },
+        select: { name: true },
+      }),
+      this.prisma.segment.findUnique({
+        where: { id: segmentId },
+        select: { name: true },
+      }),
+    ]);
+
     const membership = await this.prisma.segmentMembership.upsert({
-      where: {
-        segmentId_customerId: { segmentId, customerId },
-      },
-      update: {}, // თუ უკვე არის, არაფერი შეცვალო
+      where: { segmentId_customerId: { segmentId, customerId } },
+      update: {},
       create: { segmentId, customerId },
     });
 
-    // ხელით ჩამატებისას მაინც უნდა შევქმნათ დელტა ჩანაწერი
     await this.prisma.segmentDelta.create({
       data: {
         segmentId,
@@ -175,6 +173,13 @@ export class SegmentsService {
         removedCount: 0,
         triggeredBy: 'manual_addition',
       },
+    });
+
+    this.gateway.server.emit('system:log', {
+      id: Math.random(),
+      message: `➕ ადმინ-პანელი: ${customer?.name} ხელით დაემატა სეგმენტში "${segment?.name}".`,
+      type: 'action',
+      time: new Date().toLocaleTimeString(),
     });
 
     return membership;

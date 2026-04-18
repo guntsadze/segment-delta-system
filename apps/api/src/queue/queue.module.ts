@@ -6,13 +6,17 @@ import { BullBoardModule } from '@bull-board/nestjs';
 import { EvaluationProducer } from './evaluation.producer';
 import { EvaluationProcessor } from './evaluation.processor';
 import { DeltaModule } from '../delta/delta.module';
+import { CampaignProcessor } from './campaign.processor';
 
 @Module({
   imports: [
-    BullModule.registerQueue({
-      // ვარეგისტრირებთ რიგს და ვარქმევთ პირობით სახელს
-      name: 'segment-evaluation',
-    }),
+    BullModule.registerQueue(
+      {
+        // ვარეგისტრირებთ რიგს და ვარქმევთ პირობით სახელს
+        name: 'segment-evaluation',
+      },
+      { name: 'campaign-notifications' },
+    ),
 
     // 2. Bull Board-ის მთავარი კონფიგურაცია
     BullBoardModule.forRoot({
@@ -28,7 +32,7 @@ import { DeltaModule } from '../delta/delta.module';
 
     DeltaModule,
   ],
-  providers: [EvaluationProducer, EvaluationProcessor],
+  providers: [EvaluationProducer, EvaluationProcessor, CampaignProcessor],
   exports: [EvaluationProducer],
 })
 export class QueueModule {}
