@@ -1,10 +1,11 @@
 import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
-import { DeltaService } from '../delta/delta.service';
-import { EvaluationProducer } from './evaluation.producer';
-import { DeltaGateway } from 'src/gateway/delta.gateway';
-import { PrismaService } from 'prisma/prisma.service';
+import { DeltaService } from '../../delta/delta.service';
+import { EvaluationProducer } from '../providers/evaluation.producer';
 import { getLogType } from 'src/common/utils/log-helper';
+import { Inject } from '@nestjs/common';
+import type { ISegmentService } from '../interfaces/segment-service.interface';
+import type { INotificationGateway } from '../interfaces/notification-gateway.interface';
 
 // ვიღებთ დავცალებას რიგიდან
 @Processor('segment-evaluation')
@@ -12,8 +13,8 @@ export class EvaluationProcessor extends WorkerHost {
   constructor(
     private deltaService: DeltaService,
     private producer: EvaluationProducer,
-    private gateway: DeltaGateway,
-    private readonly prisma: PrismaService,
+    @Inject('ISegmentService') private segmentService: ISegmentService,
+    @Inject('INotificationGateway') private gateway: INotificationGateway,
     @InjectQueue('campaign-notifications') private campaignQueue: Queue,
   ) {
     super();
@@ -37,18 +38,9 @@ export class EvaluationProcessor extends WorkerHost {
       );
 
       const [segment, addedUsers, removedUsers] = await Promise.all([
-        this.prisma.segment.findUnique({
-          where: { id: segmentId },
-          select: { name: true },
-        }),
-        this.prisma.customer.findMany({
-          where: { id: { in: addedIds } },
-          select: { id: true, name: true },
-        }),
-        this.prisma.customer.findMany({
-          where: { id: { in: removedIds } },
-          select: { id: true, name: true },
-        }),
+        this.segmentService.getSegmentById(segmentId),
+        this.segmentService.getCustomerNames(addedIds),
+        this.segmentService.getCustomerNames(removedIds),
       ]);
 
       const addedNames = addedUsers.map((u) => u.name).join(', ');
@@ -59,7 +51,7 @@ export class EvaluationProcessor extends WorkerHost {
       if (addedUsers.length > 0) logMsg += ` დაემატა: ${addedNames};`;
       if (removedUsers.length > 0) logMsg += ` გავიდა: ${removedNames};`;
 
-      this.gateway.server.emit('system:log', {
+      this.gateway.sendSystemLog({
         id: Math.random(),
         message: logMsg,
         type: logType,
@@ -67,21 +59,20 @@ export class EvaluationProcessor extends WorkerHost {
       });
 
       // განახლება სპეციალური სეგმენტის დეტალებისთვის
-      this.gateway.server
-        .to(`segment:${segmentId}`)
-        .emit('segment:update_event', {
-          id: Math.random(),
-          timestamp: new Date().toLocaleTimeString(),
-          addedCount: result.added.length,
-          removedCount: result.removed.length,
-          addedSummary: addedNames,
-          removedSummary: removedNames,
-          triggeredBy: triggeredBy,
-          newAddedMembers: addedUsers,
-          removedIds: removedIds,
-        });
+      this.gateway.sendSegmentUpdate(segmentId, {
+        id: Math.random(),
+        timestamp: new Date().toLocaleTimeString(),
+        addedCount: result.added.length,
+        removedCount: result.removed.length,
+        addedSummary: addedNames,
+        removedSummary: removedNames,
+        triggeredBy: triggeredBy,
+        newAddedMembers: addedUsers,
+        removedIds: removedIds,
+      });
 
       this.gateway.sendDeltaUpdate(segmentId, result);
+
       if (result.added.length > 0) {
         await this.campaignQueue.add('send-notification', {
           customerIds: addedIds,
@@ -90,16 +81,8 @@ export class EvaluationProcessor extends WorkerHost {
       }
 
       // თუ სეგმენტზე დამოკიდებულია კიდევ სხვა სეგმენტი ვპოულობთ მასაც და ვანახლებთ მასაც
-      const dependentSegments = await this.prisma.segment.findMany({
-        where: {
-          rules: {
-            // ვიღებთ conditions - ს
-            path: ['conditions'],
-            // ვიყენებთ array_contains ს რადგან ის იყენებს ინდექსაციას და პირდაპირ პოულობს ზუსტ ჩანაწერს
-            array_contains: [{ type: 'IN_SEGMENT', segmentId: segmentId }],
-          },
-        },
-      });
+      const dependentSegments =
+        await this.segmentService.findDependentSegments(segmentId);
 
       for (const dep of dependentSegments) {
         await this.producer.triggerEvaluation(dep.id, `cascade:${segmentId}`);

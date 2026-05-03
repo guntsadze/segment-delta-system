@@ -1,8 +1,8 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';
-import { DeltaGateway } from '../gateway/delta.gateway';
 import { PrismaService } from 'prisma/prisma.service';
+import { DeltaGateway } from 'src/gateway/delta.gateway';
 
 @Processor('campaign-notifications')
 export class CampaignProcessor extends WorkerHost {

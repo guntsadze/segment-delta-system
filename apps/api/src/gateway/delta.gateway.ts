@@ -37,6 +37,18 @@ export class DeltaGateway implements OnGatewayConnection {
     client.leave(`segment:${segmentId}`);
   }
 
+  sendSystemLog(data: any) {
+    this.server.emit('system:log', data);
+  }
+
+  sendSegmentUpdate(segmentId: string, data: any) {
+    this.server.to(`segment:${segmentId}`).emit('segment:update_event', data);
+  }
+
+  sendCampaignLog(data: any) {
+    this.server.emit('campaign:log', data);
+  }
+
   /**
    * მეთოდი, რომელსაც სერვისები გამოიძახებენ დელტას გასაგზავნად
    */

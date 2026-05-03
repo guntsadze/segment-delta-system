@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { EvaluationProducer } from '../queue/evaluation.producer';
+import { EvaluationProducer } from '../queue/providers/evaluation.producer';
 import { PrismaService } from 'prisma/prisma.service';
 import { CreateSegmentDto } from './dto/segments.dto';
 import { UpdateSegmentDto } from './dto/update-segments.dto';
