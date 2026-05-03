@@ -3,10 +3,12 @@ import { BullModule } from '@nestjs/bullmq';
 import { ExpressAdapter } from '@bull-board/express';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { BullBoardModule } from '@bull-board/nestjs';
-import { EvaluationProducer } from './evaluation.producer';
-import { EvaluationProcessor } from './evaluation.processor';
+import { EvaluationProducer } from './providers/evaluation.producer';
+import { EvaluationProcessor } from './processors/evaluation.processor';
 import { DeltaModule } from '../delta/delta.module';
-import { CampaignProcessor } from './campaign.processor';
+import { SegmentService } from './segment.service.';
+import { DeltaGateway } from 'src/gateway/delta.gateway';
+import { CampaignProcessor } from './processors/campaign.processor';
 
 @Module({
   imports: [
@@ -32,7 +34,19 @@ import { CampaignProcessor } from './campaign.processor';
 
     DeltaModule,
   ],
-  providers: [EvaluationProducer, EvaluationProcessor, CampaignProcessor],
+  providers: [
+    EvaluationProducer,
+    EvaluationProcessor,
+    CampaignProcessor,
+    {
+      provide: 'ISegmentService',
+      useClass: SegmentService,
+    },
+    {
+      provide: 'INotificationGateway',
+      useClass: DeltaGateway,
+    },
+  ],
   exports: [EvaluationProducer],
 })
 export class QueueModule {}

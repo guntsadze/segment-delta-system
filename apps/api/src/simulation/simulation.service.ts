@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { EvaluationProducer } from '../queue/evaluation.producer';
+import { EvaluationProducer } from '../queue/providers/evaluation.producer';
 import { PrismaService } from 'prisma/prisma.service';
 import { Transaction } from 'node_modules/.prisma/client';
 import { DeltaGateway } from 'src/gateway/delta.gateway';
