@@ -1,9 +1,14 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
-import { getLogType } from 'src/common/utils/log-helper';
+import {
+  formatDeltaMessage,
+  getLogType,
+  wrapAsLogs,
+} from 'src/common/utils/log-helper';
 import type {
   IDeltaRepository,
   IEvaluator,
 } from './interfaces/delta.repository.interface';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Injectable()
 export class DeltaService {
@@ -31,27 +36,36 @@ export class DeltaService {
 
     if (added.length === 0 && removed.length === 0) return null;
 
-    // ვპოულობთ მომხმარებლების Email-ები დამატებულებისთვის
-    const addedCustomers = await this.repo.getCustomersByIds(added);
-    const removedCustomers = await this.repo.getCustomersByIds(removed);
-
     this.logger.log(
       `Segment ${segmentId} delta: +${added.length}, -${removed.length}`,
     );
 
-    // 5. ბაზის განახლება ტრანზაქციაში
-    const deltaRecord = await this.repo.updateSegment({
+    // ბაზის განახლება ტრანზაქციაში
+    await this.repo.updateSegment({
       segmentId,
       added,
       removed,
       triggeredBy,
     });
 
+    const { addedSummary, removedSummary } = await this.hydrateNames(
+      added,
+      removed,
+    );
+
+    const logType = getLogType(added.length, removed.length);
+
+    const message = formatDeltaMessage(addedSummary, removedSummary);
     return {
-      segmentId,
-      added: addedCustomers.map((c) => ({ id: c.id, email: c.email })),
-      removed: removedCustomers.map((c) => ({ id: c.id, email: c.email })),
-      deltaId: deltaRecord.id,
+      added,
+      removed,
+
+      time: new Date().toLocaleTimeString(),
+      type: logType,
+      message: message,
+      segmentId: segmentId,
+      addedCount: added.length,
+      removedCount: removed.length,
     };
   }
 
@@ -73,55 +87,56 @@ export class DeltaService {
   /**
    *  კონკრეტული სეგმენტის ისტორია
    */
-  async getDeltas(id: string) {
-    const deltas = await this.repo.getDeltasBySegment(id, 20);
+  async getDeltas(id: string, pagination: PaginationDto) {
+    const deltasBySegment = await this.repo.getDeltasBySegment(id, pagination);
 
-    return Promise.all(
-      deltas.map(async (d) => {
-        // 🎯 ვიყენებთ დამხმარე ფუნქციას
-        const { addedSummary, removedSummary } = await this.hydrateNames(
-          d.added,
-          d.removed,
-        );
+    return wrapAsLogs(deltasBySegment, async (d) => {
+      const { addedSummary, removedSummary } = await this.hydrateNames(
+        d.added,
+        d.removed,
+      );
+      const logType = getLogType(d.addedCount, d.removedCount);
 
-        return {
-          id: d.id,
-          timestamp: new Date(d.computedAt).toLocaleTimeString(),
-          addedCount: d.addedCount,
-          removedCount: d.removedCount,
-          addedSummary,
-          removedSummary,
-          triggeredBy: d.triggeredBy,
-        };
-      }),
-    );
+      const message = formatDeltaMessage(addedSummary, removedSummary);
+
+      return {
+        time: new Date(d.computedAt).toLocaleTimeString(),
+        id: d.id,
+        timestamp: new Date(d.computedAt).toLocaleTimeString(),
+        type: logType,
+        message: message,
+        triggeredBy: d.triggeredBy,
+      } as any;
+    });
   }
 
   /**
    *  ყველა სეგმენტის ისტორია
    */
-  async getAllDeltas() {
-    const deltas = await this.repo.getAllDeltas(50);
+  async getAllDeltas(pagination: PaginationDto) {
+    const deltas = await this.repo.getAllDeltas(pagination);
 
-    return Promise.all(
-      deltas.map(async (d) => {
-        const { addedSummary, removedSummary } = await this.hydrateNames(
-          d.added,
-          d.removed,
-        );
-        const logType = getLogType(d.addedCount, d.removedCount);
+    return wrapAsLogs(deltas, async (d) => {
+      console.log('🚀 ~ DeltaService ~ getAllDeltas ~ d:', d);
+      const { addedSummary, removedSummary } = await this.hydrateNames(
+        d.added,
+        d.removed,
+      );
 
-        let message = `სეგმენტი "${d.segment.name}" განახლდა.`;
-        if (addedSummary) message += ` დაემატა: ${addedSummary};`;
-        if (removedSummary) message += ` გავიდა: ${removedSummary};`;
+      const logType = getLogType(d.addedCount, d.removedCount);
 
-        return {
-          id: d.id,
-          time: new Date(d.computedAt).toLocaleTimeString(),
-          type: logType,
-          message: message,
-        };
-      }),
-    );
+      const message = formatDeltaMessage(
+        addedSummary,
+        removedSummary,
+        d.segment.name,
+      );
+
+      return {
+        id: d.id,
+        time: new Date(d.computedAt).toLocaleTimeString(),
+        type: logType,
+        message: message,
+      };
+    });
   }
 }

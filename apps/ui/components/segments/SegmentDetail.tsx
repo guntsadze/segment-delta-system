@@ -2,22 +2,31 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import {
-  Users,
-  RefreshCw,
-  ChevronLeft,
-  Activity,
-  Clock,
-  UserPlus,
-  UserMinus,
-} from "lucide-react";
+import { Users, RefreshCw, ChevronLeft, Activity } from "lucide-react";
 import { useSegmentDetails } from "@/hooks/use-segment-details";
+import { LoadMoreTrigger } from "../ui/load-more-trigger";
 
 export function SegmentDetailView() {
   const { id } = useParams();
-  const { segment, members, feed, loading, refreshSegment } = useSegmentDetails(
-    id as string,
-  );
+  const { deltas, segment, members, loading, refreshSegment } =
+    useSegmentDetails(id as string);
+
+  const { items, isLoading, hasMore, loadMore } = deltas;
+
+  const getLogColor = (type: string) => {
+    switch (type) {
+      case "added":
+        return "text-green-400";
+      case "removed":
+        return "text-red-400";
+      case "mixed":
+        return "text-orange-400";
+      case "action":
+        return "text-purple-300";
+      default:
+        return "text-blue-300";
+    }
+  };
 
   if (loading)
     return <div className="p-8 text-center animate-pulse">იტვირთება...</div>;
@@ -91,45 +100,26 @@ export function SegmentDetailView() {
             Live მონაცემები
           </h3>
           <div className="space-y-4 overflow-y-auto flex-1 custom-scrollbar">
-            {feed.map((event) => (
+            {items.map((log, index) => (
               <div
-                key={event.id}
-                className="border-l-2 border-slate-700 pl-4 py-1 animate-in slide-in-from-right"
+                key={`${log.id}-${index}`}
+                className="flex gap-3 animate-in fade-in slide-in-from-left duration-300"
               >
-                <div className="text-[10px] text-slate-500 mb-1 flex items-center gap-1">
-                  <Clock size={10} /> {event.timestamp}
-                </div>
-                {event.addedCount > 0 && (
-                  <div className="text-green-400 text-sm">
-                    <div className="flex items-center gap-2">
-                      <UserPlus size={14} />
-                      <span>{event.addedCount} დაემატა:</span>
-                    </div>
-                    <div className="text-[11px] text-slate-400 pl-6 break-words italic">
-                      {event.addedSummary}
-                    </div>
-                  </div>
-                )}
-
-                {event.removedCount > 0 && (
-                  <div className="text-red-400 text-sm mt-2">
-                    <div className="flex items-center gap-2">
-                      <UserMinus size={14} />
-                      <span>{event.removedCount} გავიდა:</span>
-                    </div>
-                    <div className="text-[11px] text-slate-400 pl-6 break-words italic">
-                      {event.removedSummary}
-                    </div>
-                  </div>
-                )}
+                <span className="text-slate-500">[{log.time}]</span>
+                <span className={getLogColor(log.type)}>{log.message}</span>
               </div>
             ))}
-            {feed.length === 0 && (
+            {items.length === 0 && (
               <div className="h-full flex flex-col items-center justify-center text-slate-600 opacity-40">
                 <Activity size={32} className="mb-2" />
                 <p>...</p>
               </div>
             )}
+            <LoadMoreTrigger
+              onLoadMore={loadMore}
+              isLoading={isLoading}
+              hasMore={hasMore}
+            />
           </div>
         </div>
       </div>

@@ -1,4 +1,6 @@
-import { Terminal, CheckCircle2 } from "lucide-react";
+import { Terminal } from "lucide-react";
+import { LoadMoreTrigger } from "../ui/load-more-trigger";
+import { PaginationState } from "@/types/pagination.types";
 
 interface Log {
   id: number;
@@ -7,7 +9,13 @@ interface Log {
   type: string;
 }
 
-export const LogViewer = ({ logs }: { logs: Log[] }) => {
+interface LogViewerProps {
+  logs: PaginationState<Log>;
+}
+
+export const LogViewer = ({ logs }: LogViewerProps) => {
+  const { items, isLoading, hasMore, loadMore } = logs;
+
   const getLogColor = (type: string) => {
     switch (type) {
       case "added":
@@ -37,16 +45,25 @@ export const LogViewer = ({ logs }: { logs: Log[] }) => {
       </div>
 
       <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
-        {logs.map((log) => (
+        {items.map((log, index) => (
           <div
-            key={log.id}
+            key={`${log.id}-${index}`}
             className="flex gap-3 animate-in fade-in slide-in-from-left duration-300"
           >
             <span className="text-slate-500">[{log.time}]</span>
             <span className={getLogColor(log.type)}>{log.message}</span>;
           </div>
         ))}
-        {logs.length === 0 && <div className="text-slate-600 italic">...</div>}
+
+        <LoadMoreTrigger
+          onLoadMore={loadMore}
+          isLoading={isLoading}
+          hasMore={hasMore}
+        />
+
+        {items.length === 0 && !isLoading && (
+          <div className="text-slate-600 italic">...</div>
+        )}
       </div>
     </div>
   );

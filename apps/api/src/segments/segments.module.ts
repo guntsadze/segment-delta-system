@@ -6,6 +6,6 @@ import { QueueModule } from 'src/queue/queue.module';
 @Module({
   imports: [QueueModule],
   providers: [SegmentsService],
-  controllers: [SegmentsController]
+  controllers: [SegmentsController],
 })
 export class SegmentsModule {}

@@ -1,5 +1,11 @@
+import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { PaginatedResult } from 'types/pagination.types';
+
 export interface IDeltaRepository {
-  getMembers(segmentId: string): Promise<string[]>;
+  getMembers(
+    segmentId: string,
+    // pagination: PaginationDto,
+  ): Promise<any[]>;
   getCustomersByIds(
     ids: string[],
   ): Promise<{ id: string; email: string; name: string }[]>;
@@ -11,8 +17,13 @@ export interface IDeltaRepository {
     triggeredBy: string;
   }): Promise<any>;
 
-  getDeltasBySegment(segmentId: string, limit: number): Promise<any[]>;
-  getAllDeltas(limit: number): Promise<any[]>;
+  getDeltasBySegment(
+    segmentId: string,
+    pagination: PaginationDto,
+  ): Promise<any[] | PaginatedResult<any>>;
+  getAllDeltas(
+    pagination: PaginationDto,
+  ): Promise<any[] | PaginatedResult<any>>;
 }
 
 export interface IEvaluator {

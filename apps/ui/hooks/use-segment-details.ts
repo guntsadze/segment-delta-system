@@ -1,31 +1,38 @@
 import { useState, useEffect, useCallback } from "react";
 import { SegmentsService } from "@/services/segments.service";
 import { socket } from "@/lib/socket";
-import { DeltaService } from "@/services/delta.service";
+import deltaService from "@/services/delta.service";
+import { useInfiniteScroll } from "./useInfiniteScroll";
 
 export const useSegmentDetails = (id: string) => {
   const [segment, setSegment] = useState<any>(null);
   const [members, setMembers] = useState<any[]>([]);
-  const [feed, setFeed] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const deltas = useInfiniteScroll<any>((page) =>
+    deltaService.getDeltas(id, { page, limit: 10 }),
+  );
 
   const loadData = useCallback(async () => {
     try {
-      const [seg, mems, history] = await Promise.all([
+      const [seg, mems] = await Promise.all([
         SegmentsService.getById(id),
         SegmentsService.getMembers(id),
-        DeltaService.getDeltas(id),
       ]);
       setSegment(seg);
       setMembers(mems);
-      setFeed(history);
     } finally {
       setLoading(false);
     }
   }, [id]);
 
+  const handleNewLog = (newLog: any) => {
+    deltas.setData((prev) => [newLog, ...prev]);
+  };
+
   useEffect(() => {
     loadData();
+    socket.on("segment:delta", handleNewLog);
     socket.emit("join-segment", id);
     socket.on("segment:update_event", loadData);
 
@@ -41,5 +48,5 @@ export const useSegmentDetails = (id: string) => {
     await loadData();
   };
 
-  return { segment, members, feed, loading, refreshSegment };
+  return { deltas, segment, members, loading, refreshSegment };
 };

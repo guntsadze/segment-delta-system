@@ -1,11 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
 import { IDeltaRepository } from '../interfaces/delta.repository.interface';
+import { BaseCrudService } from 'src/common/services/base-crud.service';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Injectable()
-export class PrismaDeltaRepository implements IDeltaRepository {
-  constructor(private readonly prisma: PrismaService) {}
+export class PrismaDeltaRepository
+  extends BaseCrudService<any>
+  implements IDeltaRepository
+{
+  protected modelName = 'segmentDelta';
 
+  constructor(prisma: PrismaService) {
+    super(prisma);
+  }
   async getMembers(segmentId: string): Promise<string[]> {
     const members = await this.prisma.segmentMembership.findMany({
       where: { segmentId },
@@ -62,19 +70,24 @@ export class PrismaDeltaRepository implements IDeltaRepository {
     });
   }
 
-  async getDeltasBySegment(segmentId: string, limit: number) {
-    return this.prisma.segmentDelta.findMany({
-      where: { segmentId },
-      take: limit,
-      orderBy: { computedAt: 'desc' },
-    });
+  async getDeltasBySegment(segmentId: string, pagination: PaginationDto) {
+    return this.findAll(
+      {
+        where: { segmentId },
+        include: { segment: { select: { name: true } } },
+        orderBy: { computedAt: 'desc' },
+      },
+      pagination,
+    );
   }
 
-  async getAllDeltas(limit: number) {
-    return this.prisma.segmentDelta.findMany({
-      take: limit,
-      orderBy: { computedAt: 'desc' },
-      include: { segment: { select: { name: true } } },
-    });
+  async getAllDeltas(pagination: PaginationDto) {
+    return this.findAll(
+      {
+        include: { segment: { select: { name: true } } },
+        orderBy: { computedAt: 'desc' },
+      },
+      pagination,
+    );
   }
 }

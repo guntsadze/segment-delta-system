@@ -2,26 +2,29 @@ import { useState, useEffect } from "react";
 import { SimulationService } from "@/services/simulation.service";
 import { socket } from "@/lib/socket";
 import { SegmentsService } from "@/services/segments.service";
-import { DeltaService } from "@/services/delta.service";
+import deltaService from "@/services/delta.service";
+import { useInfiniteScroll } from "./useInfiniteScroll";
 
 export const useSimulation = () => {
   const [customers, setCustomers] = useState<any[]>([]);
   const [segments, setSegments] = useState<any[]>([]);
-  const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const logs = useInfiniteScroll<any>(
+    (page) => deltaService.getAllDeltas({ page, limit: 10 }),
+    [],
+  );
 
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        const [custRes, segRes, deltaRes] = await Promise.all([
+        const [custRes, segRes] = await Promise.all([
           SimulationService.getCustomers(),
           SegmentsService.getAll(),
-          DeltaService.getAllDeltas(),
         ]);
 
-        setCustomers(custRes.data || custRes);
+        setCustomers(custRes || custRes);
         setSegments(segRes.data || segRes);
-        setLogs(deltaRes as any);
       } catch (err) {
         console.error("Error loading initial data:", err);
       }
@@ -29,9 +32,11 @@ export const useSimulation = () => {
 
     loadInitialData();
 
-    socket.on("system:log", (newLog) => {
-      setLogs((prev) => [newLog, ...prev].slice(0, 50));
-    });
+    const handleNewLog = (newLog: any) => {
+      logs.setData((prev) => [newLog, ...prev]);
+    };
+
+    socket.on("system:log", handleNewLog);
 
     return () => {
       socket.off("system:log");

@@ -1,12 +1,16 @@
 import { api } from "@/lib/api";
+import { PaginationParams } from "@/types/pagination.types";
 
-export const DeltaService = {
-  async getAllDeltas() {
-    return api.get("/deltas/all/deltas");
-  },
+class DeltaService {
+  protected endpoint = "/deltas";
 
-  async getDeltas(id: string): Promise<any[]> {
-    const res = await api.get(`/deltas/${id}/deltas`);
-    return res.data || res;
-  },
-};
+  async getAllDeltas(params: PaginationParams) {
+    return api.get(`${this.endpoint}/all/deltas`, { params });
+  }
+
+  async getDeltas(id: string, params: PaginationParams) {
+    return api.get(`${this.endpoint}/${id}/deltas`, { params });
+  }
+}
+
+export default new DeltaService();
