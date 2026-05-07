@@ -186,4 +186,43 @@ export class SimulationService {
 
     return { message: `Bulk import of ${count} customers completed.` };
   }
+
+  async addMemberManually(segmentId: string, customerId: string) {
+    const [customer, segment] = await Promise.all([
+      this.prisma.customer.findUnique({
+        where: { id: customerId },
+        select: { name: true },
+      }),
+      this.prisma.segment.findUnique({
+        where: { id: segmentId },
+        select: { name: true },
+      }),
+    ]);
+
+    const membership = await this.prisma.segmentMembership.upsert({
+      where: { segmentId_customerId: { segmentId, customerId } },
+      update: {},
+      create: { segmentId, customerId },
+    });
+
+    await this.prisma.segmentDelta.create({
+      data: {
+        segmentId,
+        added: [customerId],
+        removed: [],
+        addedCount: 1,
+        removedCount: 0,
+        triggeredBy: 'manual_addition',
+      },
+    });
+
+    this.gateway.server.emit('system:log', {
+      id: Math.random(),
+      message: `➕ ადმინ-პანელი: ${customer?.name} ხელით დაემატა სეგმენტში "${segment?.name}".`,
+      type: 'action',
+      time: new Date().toLocaleTimeString(),
+    });
+
+    return membership;
+  }
 }

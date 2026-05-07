@@ -23,6 +23,6 @@ export const SimulationService = {
   },
 
   async addToStaticSegment(segmentId: string, customerId: string) {
-    return api.post(`/segments/${segmentId}/add-member`, { customerId });
+    return api.post(`/simulation/${segmentId}/add-member`, { customerId });
   },
 };

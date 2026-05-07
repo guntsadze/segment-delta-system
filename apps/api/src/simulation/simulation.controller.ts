@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Param } from '@nestjs/common';
 import { SimulationService } from './simulation.service';
 
 @Controller('simulation')
@@ -29,5 +29,13 @@ export class SimulationController {
   @Post('bulk-import')
   async bulkImport(@Body() body: { count: number }) {
     return this.simulationService.bulkImport(body.count);
+  }
+
+  @Post(':id/add-member')
+  async addMember(
+    @Param('id') id: string,
+    @Body() body: { customerId: string },
+  ) {
+    return this.simulationService.addMemberManually(id, body.customerId);
   }
 }

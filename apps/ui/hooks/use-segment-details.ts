@@ -1,13 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
-import { SegmentsService } from "@/services/segments.service";
 import { socket } from "@/lib/socket";
 import deltaService from "@/services/delta.service";
 import { useInfiniteScroll } from "./useInfiniteScroll";
 import customersService from "@/services/customers.service";
+import segmentsService from "@/services/segments.service";
 
 export const useSegmentDetails = (id: string) => {
   const [segment, setSegment] = useState<any>(null);
-  // const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const deltas = useInfiniteScroll<any>((page) =>
@@ -20,12 +19,8 @@ export const useSegmentDetails = (id: string) => {
 
   const loadData = useCallback(async () => {
     try {
-      const [seg] = await Promise.all([
-        SegmentsService.getById(id),
-        // SegmentsService.getMembers(id),
-      ]);
+      const [seg] = await Promise.all([segmentsService.getSegment(id)]);
       setSegment(seg);
-      // setMembers(mems);
     } finally {
       setLoading(false);
     }
@@ -49,7 +44,7 @@ export const useSegmentDetails = (id: string) => {
 
   const refreshSegment = async () => {
     setLoading(true);
-    await SegmentsService.refresh(id);
+    await segmentsService.refreshSegment(id);
     await loadData();
   };
 

@@ -1,29 +1,32 @@
 import { api } from "@/lib/api";
-import { SegmentFormValues } from "@/types/segment";
+import { PaginationParams } from "@/types/pagination.types";
 
-export const SegmentsService = {
-  async getAll() {
-    const res = await api.get("/segments");
-    return res;
-  },
+class SegmentsService {
+  protected endpoint = "/segments";
 
-  async getById(id: string) {
-    return api.get(`/segments/${id}`);
-  },
+  async getSegments(pagination: PaginationParams) {
+    return api.get(`${this.endpoint}`, { params: pagination });
+  }
 
-  async create(data: SegmentFormValues) {
-    return api.post("/segments", data);
-  },
+  async getSegment(id: string) {
+    return api.get(`${this.endpoint}/${id}`);
+  }
 
-  async update(id: string, data: SegmentFormValues) {
-    return api.patch(`/segments/${id}`, data);
-  },
+  async createSegment(data: any) {
+    return api.post(`${this.endpoint}`, data);
+  }
 
-  async delete(id: string) {
-    return api.delete(`/segments/${id}`);
-  },
+  async updateSegment(id: string, data: any) {
+    return api.patch(`${this.endpoint}/${id}`, data);
+  }
 
-  async refresh(id: string) {
-    return api.post(`/segments/${id}/refresh`, {});
-  },
-};
+  async deleteSegment(id: string) {
+    return api.delete(`${this.endpoint}/${id}`);
+  }
+
+  async refreshSegment(id: string) {
+    return api.post(`${this.endpoint}/${id}/refresh`, {});
+  }
+}
+
+export default new SegmentsService();

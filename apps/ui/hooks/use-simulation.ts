@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
 import { SimulationService } from "@/services/simulation.service";
 import { socket } from "@/lib/socket";
-import { SegmentsService } from "@/services/segments.service";
 import deltaService from "@/services/delta.service";
 import { useInfiniteScroll } from "./useInfiniteScroll";
 import customersService from "@/services/customers.service";
+import segmentsService from "@/services/segments.service";
 
 export const useSimulation = () => {
-  const [segments, setSegments] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   const logs = useInfiniteScroll<any>(
@@ -20,19 +19,11 @@ export const useSimulation = () => {
     [],
   );
 
+  const segments = useInfiniteScroll<any>((page) =>
+    segmentsService.getSegments({ page, limit: 10 }),
+  );
+
   useEffect(() => {
-    const loadInitialData = async () => {
-      try {
-        const [segRes] = await Promise.all([SegmentsService.getAll()]);
-
-        setSegments(segRes.data || segRes);
-      } catch (err) {
-        console.error("Error loading initial data:", err);
-      }
-    };
-
-    loadInitialData();
-
     const handleNewLog = (newLog: any) => {
       logs.setData((prev) => [newLog, ...prev]);
     };

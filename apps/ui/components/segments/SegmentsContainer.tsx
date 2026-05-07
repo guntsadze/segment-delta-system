@@ -1,16 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Loader2, LayoutGrid } from "lucide-react";
+import { Plus, LayoutGrid } from "lucide-react";
 import { SegmentCard } from "@/components/segments/SegmentCard";
 import { SegmentForm } from "@/components/segments/forms/SegmentForm";
 import { useSegments } from "@/hooks/use-segments";
 import { SegmentFormValues } from "@/types/segment";
 import { Modal } from "../ui/Modal";
+import { LoadMoreTrigger } from "../ui/load-more-trigger";
 
 export function SegmentsContainer() {
-  const { segments, isLoading, addSegment, updateSegment, removeSegment } =
-    useSegments();
+  const { segments, addSegment, updateSegment, removeSegment } = useSegments();
+
+  const { items, isLoading, hasMore, loadMore } = segments;
 
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [editingSegment, setEditingSegment] = useState<any | null>(null);
@@ -34,15 +36,8 @@ export function SegmentsContainer() {
     }
   };
 
-  if (isLoading)
-    return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <Loader2 className="animate-spin text-blue-600" size={40} />
-      </div>
-    );
-
   return (
-    <div className="p-8 max-w-6xl mx-auto min-h-screen">
+    <div className="max-w-6xl mx-auto p-8">
       {/* --- HEADER --- */}
       <header className="flex justify-between items-center mb-10">
         <div>
@@ -70,15 +65,15 @@ export function SegmentsContainer() {
             initialData={editingSegment}
             onSubmit={handleSave}
             onClose={closeForm}
-            availableSegments={segments}
+            availableSegments={items}
           />
         </div>
       </Modal>
 
       {/* --- GRID --- */}
-      {segments?.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {segments.map((s) => (
+      {items?.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl max-h-[75vh] overflow-y-auto p-1">
+          {items.map((s) => (
             <SegmentCard
               key={s.id}
               segment={s}
@@ -99,6 +94,11 @@ export function SegmentsContainer() {
           <p className="text-slate-400 font-medium">სეგმენტები ვერ მოიძებნა</p>
         </div>
       )}
+      <LoadMoreTrigger
+        onLoadMore={loadMore}
+        isLoading={isLoading}
+        hasMore={hasMore}
+      />
     </div>
   );
 }

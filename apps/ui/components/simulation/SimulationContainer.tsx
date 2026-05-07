@@ -27,6 +27,8 @@ export function SimulationContainer() {
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const close = () => setActiveModal(null);
 
+  const { items: segmentsItems } = segments;
+
   const [campaignLogs, setCampaignLogs] = useState<any[]>([]);
 
   useEffect(() => {
@@ -112,7 +114,7 @@ export function SimulationContainer() {
         title="სეგმენტში ჩამატება"
       >
         <ManualAddForm
-          segments={segments}
+          segments={segmentsItems}
           customers={customers}
           loading={loading}
           onSubmit={(d) => {
