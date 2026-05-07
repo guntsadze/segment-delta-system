@@ -30,7 +30,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
       />
 
       {/* Modal Content */}
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden transform transition-all">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl  overflow-visible transform transition-all">
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="text-lg font-bold text-slate-800">{title}</h3>
           <button

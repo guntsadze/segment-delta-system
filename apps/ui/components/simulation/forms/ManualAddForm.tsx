@@ -1,10 +1,11 @@
 "use client";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { FormSelect, FormButton } from "@/components/ui/FormElements";
+import { CustomerSelect } from "@/components/ui/CustomerSelect";
 
 interface Props {
   segments: any[];
-  customers: any[];
+  customers: any;
   onSubmit: (data: any) => void;
   loading: boolean;
 }
@@ -16,7 +17,7 @@ export function ManualAddForm({
   loading,
 }: Props) {
   const staticSegments = segments.filter((s) => s.type === "STATIC");
-  const { register, handleSubmit } = useForm({
+  const { register, handleSubmit, control } = useForm({
     defaultValues: { segmentId: "", customerId: "" },
   });
 
@@ -30,10 +31,10 @@ export function ManualAddForm({
         }))}
         {...register("segmentId")}
       />
-      <FormSelect
-        label="მომხმარებელი"
-        options={customers.map((c) => ({ value: c.id, label: c.name }))}
-        {...register("customerId")}
+      <CustomerSelect
+        name="customerId"
+        control={control}
+        customers={customers}
       />
       <FormButton variant="dark" isLoading={loading} type="submit">
         სეგმენტში დამატება

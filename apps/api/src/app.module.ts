@@ -8,6 +8,7 @@ import { SimulationModule } from './simulation/simulation.module';
 import { SegmentsModule } from './segments/segments.module';
 import { PrismaModule } from 'prisma/prisma.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { CustomersModule } from './customers/customers.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     GatewayModule,
     SimulationModule,
     SegmentsModule,
+    CustomersModule,
   ],
 })
 export class AppModule {}

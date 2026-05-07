@@ -1,13 +1,10 @@
 "use client";
 import { useForm } from "react-hook-form";
-import {
-  FormInput,
-  FormSelect,
-  FormButton,
-} from "@/components/ui/FormElements";
+import { FormInput, FormButton } from "@/components/ui/FormElements";
+import { CustomerSelect } from "@/components/ui/CustomerSelect";
 
 interface UpdateProfileProps {
-  customers: { id: string; name: string }[];
+  customers: any;
   onSubmit: (customerId: string, name: string) => void;
   loading: boolean;
 }
@@ -17,7 +14,7 @@ export function UpdateProfileForm({
   onSubmit,
   loading,
 }: UpdateProfileProps) {
-  const { register, handleSubmit, reset } = useForm({
+  const { register, handleSubmit, reset, control } = useForm({
     defaultValues: { customerId: "", name: "" },
   });
 
@@ -29,13 +26,10 @@ export function UpdateProfileForm({
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5">
       <div className="space-y-4">
-        <FormSelect
-          label="აირჩიე მომხმარებელი"
-          options={customers.map((c) => ({
-            value: c.id,
-            label: c.name,
-          }))}
-          {...register("customerId", { required: true })}
+        <CustomerSelect
+          name="customerId"
+          control={control}
+          customers={customers}
         />
 
         <FormInput

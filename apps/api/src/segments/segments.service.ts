@@ -46,31 +46,6 @@ export class SegmentsService {
   }
 
   /**
-   * სეგმენტის წევრების პაგინირებული სია
-   */
-  async getMembers(id: string, page: number = 1, limit: number = 20) {
-    const skip = (page - 1) * limit;
-
-    const [members, total] = await Promise.all([
-      this.prisma.segmentMembership.findMany({
-        where: { segmentId: id },
-        include: { customer: true },
-        skip,
-        take: limit,
-        orderBy: { joinedAt: 'desc' },
-      }),
-      this.prisma.segmentMembership.count({ where: { segmentId: id } }),
-    ]);
-
-    return {
-      data: members.map((m) => m.customer),
-      total,
-      page,
-      lastPage: Math.ceil(total / limit),
-    };
-  }
-
-  /**
    * სეგმენტის ხელით განახლება (Manual Refresh)
    */
   async refresh(id: string) {

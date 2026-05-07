@@ -1,19 +1,20 @@
 "use client";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import {
   FormInput,
   FormSelect,
   FormButton,
 } from "@/components/ui/FormElements";
+import { CustomerSelect } from "@/components/ui/CustomerSelect";
 
 interface Props {
-  customers: any[];
+  customers: any;
   onSubmit: (customerId: string, amount: number, count: number) => void;
   loading: boolean;
 }
 
 export function TransactionForm({ customers, onSubmit, loading }: Props) {
-  const { register, handleSubmit } = useForm({
+  const { register, handleSubmit, control } = useForm({
     defaultValues: { customerId: "", amount: 100, count: 1 },
   });
 
@@ -25,10 +26,10 @@ export function TransactionForm({ customers, onSubmit, loading }: Props) {
       })}
       className="space-y-5"
     >
-      <FormSelect
-        label="მომხმარებელი"
-        options={customers.map((c) => ({ value: c.id, label: c.name }))}
-        {...register("customerId")}
+      <CustomerSelect
+        name="customerId"
+        control={control}
+        customers={customers}
       />
       <FormInput
         label="თანხა (GEL)"

@@ -1,13 +1,10 @@
 "use client";
 import { useForm } from "react-hook-form";
-import {
-  FormSelect,
-  FormInput,
-  FormButton,
-} from "@/components/ui/FormElements";
+import { FormInput, FormButton } from "@/components/ui/FormElements";
+import { CustomerSelect } from "@/components/ui/CustomerSelect";
 
 interface TimeTravelProps {
-  customers: { id: string; name: string }[];
+  customers: any;
   onSubmit: (days: number, target: string) => void;
   loading: boolean;
 }
@@ -17,7 +14,7 @@ export function TimeTravelForm({
   onSubmit,
   loading,
 }: TimeTravelProps) {
-  const { register, handleSubmit } = useForm({
+  const { register, handleSubmit, control } = useForm({
     defaultValues: { target: "all", days: 30 },
   });
 
@@ -26,13 +23,12 @@ export function TimeTravelForm({
       onSubmit={handleSubmit((d) => onSubmit(d.days, d.target))}
       className="space-y-5"
     >
-      <FormSelect
+      <CustomerSelect
+        name="target"
+        control={control}
         label="ვისზე გავრცელდეს?"
-        options={[
-          { value: "all", label: "🌍 ყველა (Global Update)" },
-          ...customers.map((c) => ({ value: c.id, label: `👤 ${c.name}` })),
-        ]}
-        {...register("target")}
+        customers={customers}
+        extraOptions={[{ value: "all", label: "🌍 ყველა (Global Update)" }]}
       />
 
       <div className="flex gap-2 items-end">

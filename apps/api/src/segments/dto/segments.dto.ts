@@ -28,6 +28,11 @@ export class SegmentConditionDto {
   @IsOptional()
   @IsNumber()
   @Min(0)
+  inactiveDays?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
   minAmount?: number;
 
   @IsOptional()

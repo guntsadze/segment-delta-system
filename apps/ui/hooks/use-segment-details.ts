@@ -3,24 +3,29 @@ import { SegmentsService } from "@/services/segments.service";
 import { socket } from "@/lib/socket";
 import deltaService from "@/services/delta.service";
 import { useInfiniteScroll } from "./useInfiniteScroll";
+import customersService from "@/services/customers.service";
 
 export const useSegmentDetails = (id: string) => {
   const [segment, setSegment] = useState<any>(null);
-  const [members, setMembers] = useState<any[]>([]);
+  // const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const deltas = useInfiniteScroll<any>((page) =>
     deltaService.getDeltas(id, { page, limit: 10 }),
   );
 
+  const members = useInfiniteScroll<any>((page) =>
+    customersService.getMembersBySegment(id, { page, limit: 10 }),
+  );
+
   const loadData = useCallback(async () => {
     try {
-      const [seg, mems] = await Promise.all([
+      const [seg] = await Promise.all([
         SegmentsService.getById(id),
-        SegmentsService.getMembers(id),
+        // SegmentsService.getMembers(id),
       ]);
       setSegment(seg);
-      setMembers(mems);
+      // setMembers(mems);
     } finally {
       setLoading(false);
     }

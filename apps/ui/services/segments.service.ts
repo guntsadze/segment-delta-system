@@ -26,9 +26,4 @@ export const SegmentsService = {
   async refresh(id: string) {
     return api.post(`/segments/${id}/refresh`, {});
   },
-
-  async getMembers(id: string): Promise<any[]> {
-    const res = await api.get(`/segments/${id}/members`);
-    return res.data;
-  },
 };

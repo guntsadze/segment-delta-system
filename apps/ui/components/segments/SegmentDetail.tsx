@@ -10,8 +10,14 @@ export function SegmentDetailView() {
   const { id } = useParams();
   const { deltas, segment, members, loading, refreshSegment } =
     useSegmentDetails(id as string);
+  const { items: deltaLogs, isLoading, hasMore, loadMore } = deltas;
 
-  const { items, isLoading, hasMore, loadMore } = deltas;
+  const {
+    items: memberList,
+    isLoading: isMembersLoading,
+    hasMore: hasMoreMembers,
+    loadMore: loadMoreMembers,
+  } = members;
 
   const getLogColor = (type: string) => {
     switch (type) {
@@ -56,7 +62,7 @@ export function SegmentDetailView() {
               {segment?.type}
             </span>
             <span className="text-slate-500 flex items-center gap-1">
-              <Users size={16} /> {members.length} სეგმენტის წევრები
+              <Users size={16} /> {memberList.length} სეგმენტის წევრები
             </span>
           </div>
         </div>
@@ -80,7 +86,7 @@ export function SegmentDetailView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {members.map((m) => (
+              {memberList.map((m) => (
                 <tr key={m.id} className="hover:bg-slate-50 transition">
                   <td className="px-6 py-4 font-medium">{m.name}</td>
                   <td className="px-6 py-4 text-slate-500">{m.email}</td>
@@ -89,6 +95,16 @@ export function SegmentDetailView() {
                   </td>
                 </tr>
               ))}
+
+              {hasMoreMembers && (
+                <td colSpan={3}>
+                  <LoadMoreTrigger
+                    onLoadMore={loadMoreMembers}
+                    isLoading={isMembersLoading}
+                    hasMore={hasMoreMembers}
+                  />
+                </td>
+              )}
             </tbody>
           </table>
         </div>
@@ -100,7 +116,7 @@ export function SegmentDetailView() {
             Live მონაცემები
           </h3>
           <div className="space-y-4 overflow-y-auto flex-1 custom-scrollbar">
-            {items.map((log, index) => (
+            {deltaLogs.map((log, index) => (
               <div
                 key={`${log.id}-${index}`}
                 className="flex gap-3 animate-in fade-in slide-in-from-left duration-300"
@@ -109,7 +125,7 @@ export function SegmentDetailView() {
                 <span className={getLogColor(log.type)}>{log.message}</span>
               </div>
             ))}
-            {items.length === 0 && (
+            {deltaLogs.length === 0 && (
               <div className="h-full flex flex-col items-center justify-center text-slate-600 opacity-40">
                 <Activity size={32} className="mb-2" />
                 <p>...</p>
