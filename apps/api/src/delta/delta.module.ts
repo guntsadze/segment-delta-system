@@ -4,6 +4,7 @@ import { EvaluatorModule } from 'src/evaluator/evaluator.module';
 import { DeltaController } from './delta.controller';
 import { PrismaDeltaRepository } from './repositories/delta.repository';
 import { EvaluatorService } from 'src/evaluator/evaluator.service';
+import { PrismaCustomerRepository } from 'src/customers/repositories/prisma-customer.repository';
 
 @Module({
   imports: [EvaluatorModule],
@@ -16,6 +17,10 @@ import { EvaluatorService } from 'src/evaluator/evaluator.service';
     {
       provide: 'IEvaluator',
       useClass: EvaluatorService,
+    },
+    {
+      provide: 'ICustomerRepository',
+      useClass: PrismaCustomerRepository,
     },
   ],
   controllers: [DeltaController],

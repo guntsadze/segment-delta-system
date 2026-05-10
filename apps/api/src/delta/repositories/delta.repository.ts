@@ -22,13 +22,6 @@ export class PrismaDeltaRepository
     return members.map((m) => m.customerId);
   }
 
-  async getCustomersByIds(ids: string[]) {
-    return this.prisma.customer.findMany({
-      where: { id: { in: ids } },
-      select: { id: true, email: true, name: true },
-    });
-  }
-
   async updateSegment(params: {
     segmentId: string;
     added: string[];
@@ -60,11 +53,24 @@ export class PrismaDeltaRepository
       return tx.segmentDelta.create({
         data: {
           segmentId: params.segmentId,
-          added: params.added,
-          removed: params.removed,
+          additions: {
+            create: params.added.map((id) => ({ customerId: id })),
+          },
+          removals: {
+            create: params.removed.map((id) => ({ customerId: id })),
+          },
           addedCount: params.added.length,
           removedCount: params.removed.length,
           triggeredBy: params.triggeredBy,
+        },
+        include: {
+          segment: { select: { name: true } },
+          additions: {
+            include: { customer: { select: { name: true, email: true } } },
+          },
+          removals: {
+            include: { customer: { select: { name: true, email: true } } },
+          },
         },
       });
     });
@@ -74,7 +80,11 @@ export class PrismaDeltaRepository
     return this.findAll(
       {
         where: { segmentId },
-        include: { segment: { select: { name: true } } },
+        include: {
+          segment: { select: { name: true } },
+          additions: { include: { customer: { select: { name: true } } } },
+          removals: { include: { customer: { select: { name: true } } } },
+        },
         orderBy: { computedAt: 'desc' },
       },
       pagination,
@@ -84,7 +94,11 @@ export class PrismaDeltaRepository
   async getAllDeltas(pagination: PaginationDto) {
     return this.findAll(
       {
-        include: { segment: { select: { name: true } } },
+        include: {
+          segment: { select: { name: true } },
+          additions: { include: { customer: { select: { name: true } } } },
+          removals: { include: { customer: { select: { name: true } } } },
+        },
         orderBy: { computedAt: 'desc' },
       },
       pagination,

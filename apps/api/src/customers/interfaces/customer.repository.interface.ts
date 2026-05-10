@@ -6,4 +6,5 @@ export interface ICustomerRepository {
     segmentId: string,
     pagination?: PaginationDto,
   ): Promise<any[] | PaginatedResult<any>>;
+  getMemberIds(segmentId: string): Promise<string[]>;
 }

@@ -26,15 +26,26 @@ export const useSegmentDetails = (id: string) => {
     }
   }, [id]);
 
-  const handleNewLog = (newLog: any) => {
-    deltas.setData((prev) => [newLog, ...prev]);
+  const handleNewLog = (payload: any) => {
+    console.log("🚀 ~ sync ~ payload:", payload);
+    const { add, remove, total } = payload.updates;
+
+    members.setData((prev) => [
+      ...add,
+      ...prev.filter((m) => !remove.includes(m.id)),
+    ]);
+
+    setSegment((prev: any) =>
+      prev ? { ...prev, _count: { ...prev._count, members: total } } : prev,
+    );
+
+    deltas.setData((prev) => [payload, ...prev]);
   };
 
   useEffect(() => {
     loadData();
     socket.on("segment:delta", handleNewLog);
     socket.emit("join-segment", id);
-    socket.on("segment:update_event", loadData);
 
     return () => {
       socket.emit("leave-segment", id);

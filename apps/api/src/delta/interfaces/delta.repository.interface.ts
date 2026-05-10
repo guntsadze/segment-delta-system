@@ -2,14 +2,6 @@ import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { PaginatedResult } from 'types/pagination.types';
 
 export interface IDeltaRepository {
-  getMembers(
-    segmentId: string,
-    // pagination: PaginationDto,
-  ): Promise<any[]>;
-  getCustomersByIds(
-    ids: string[],
-  ): Promise<{ id: string; email: string; name: string }[]>;
-
   updateSegment(params: {
     segmentId: string;
     added: string[];

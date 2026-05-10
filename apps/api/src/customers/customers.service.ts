@@ -18,4 +18,8 @@ export class CustomersService {
     const customers = await this.repo.getCustomers(pagination);
     return customers;
   }
+
+  async getMemberIds(segmentId: string) {
+    return this.repo.getMemberIds(segmentId);
+  }
 }

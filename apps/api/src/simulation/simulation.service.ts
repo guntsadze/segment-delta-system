@@ -208,8 +208,9 @@ export class SimulationService {
     await this.prisma.segmentDelta.create({
       data: {
         segmentId,
-        added: [customerId],
-        removed: [],
+        additions: {
+          create: { customerId },
+        },
         addedCount: 1,
         removedCount: 0,
         triggeredBy: 'manual_addition',

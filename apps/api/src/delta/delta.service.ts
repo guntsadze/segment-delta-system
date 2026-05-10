@@ -9,6 +9,7 @@ import type {
   IEvaluator,
 } from './interfaces/delta.repository.interface';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { PrismaCustomerRepository } from 'src/customers/repositories/prisma-customer.repository';
 
 @Injectable()
 export class DeltaService {
@@ -17,6 +18,8 @@ export class DeltaService {
   constructor(
     @Inject('IEvaluator') private readonly evaluator: IEvaluator,
     @Inject('IDeltaRepository') private readonly repo: IDeltaRepository,
+    @Inject('ICustomerRepository')
+    private readonly customerRepo: PrismaCustomerRepository,
   ) {}
 
   /**
@@ -24,7 +27,7 @@ export class DeltaService {
    */
   async computeDelta(segmentId: string, triggeredBy: string) {
     // 1. ამოვიღოთ არსებული წევრები ბაზიდან
-    const existingMemberIds = await this.repo.getMembers(segmentId);
+    const existingMemberIds = await this.customerRepo.getMemberIds(segmentId);
     const previousSet = new Set(existingMemberIds);
 
     // 2. გამოვთვალოთ ვინ უნდა იყოს სეგმენტში ახლანდელი მონაცემებით
@@ -41,102 +44,69 @@ export class DeltaService {
     );
 
     // ბაზის განახლება ტრანზაქციაში
-    await this.repo.updateSegment({
+    const delta = await this.repo.updateSegment({
       segmentId,
       added,
       removed,
       triggeredBy,
     });
 
-    const { addedSummary, removedSummary } = await this.hydrateNames(
-      added,
-      removed,
-    );
-
-    const logType = getLogType(added.length, removed.length);
-
-    const message = formatDeltaMessage(addedSummary, removedSummary);
     return {
-      added,
-      removed,
-
-      time: new Date().toLocaleTimeString(),
-      type: logType,
-      message: message,
-      segmentId: segmentId,
-      addedCount: added.length,
-      removedCount: removed.length,
+      ...this.mapToLog(delta),
+      updates: {
+        add: delta.additions.map((a) => ({ ...a.customer, id: a.customerId })),
+        remove: delta.removals.map((r) => r.customerId),
+        total: currentSet.size,
+      },
     };
   }
 
   /**
-   *  დამხმარე მეთოდი: ID-ების მიხედვით დამიბრუნებს სახელებს
-   */
-  private async hydrateNames(addedIds: string[], removedIds: string[]) {
-    const [addedUsers, removedUsers] = await Promise.all([
-      this.repo.getCustomersByIds(addedIds),
-      this.repo.getCustomersByIds(removedIds),
-    ]);
-
-    return {
-      addedSummary: addedUsers.map((u) => u.name).join(', '),
-      removedSummary: removedUsers.map((u) => u.name).join(', '),
-    };
-  }
-
-  /**
-   *  კონკრეტული სეგმენტის ისტორია
+   * კონკრეტული სეგმენტის ისტორია
    */
   async getDeltas(id: string, pagination: PaginationDto) {
-    const deltasBySegment = await this.repo.getDeltasBySegment(id, pagination);
-
-    return wrapAsLogs(deltasBySegment, async (d) => {
-      const { addedSummary, removedSummary } = await this.hydrateNames(
-        d.added,
-        d.removed,
-      );
-      const logType = getLogType(d.addedCount, d.removedCount);
-
-      const message = formatDeltaMessage(addedSummary, removedSummary);
-
-      return {
-        time: new Date(d.computedAt).toLocaleTimeString(),
-        id: d.id,
-        timestamp: new Date(d.computedAt).toLocaleTimeString(),
-        type: logType,
-        message: message,
-        triggeredBy: d.triggeredBy,
-      } as any;
-    });
+    const deltas = await this.repo.getDeltasBySegment(id, pagination);
+    return wrapAsLogs(deltas, (d) => this.mapToLog(d));
   }
 
   /**
-   *  ყველა სეგმენტის ისტორია
+   * ყველა სეგმენტის ისტორია
    */
   async getAllDeltas(pagination: PaginationDto) {
     const deltas = await this.repo.getAllDeltas(pagination);
+    return wrapAsLogs(deltas, (d) => this.mapToLog(d));
+  }
 
-    return wrapAsLogs(deltas, async (d) => {
-      console.log('🚀 ~ DeltaService ~ getAllDeltas ~ d:', d);
-      const { addedSummary, removedSummary } = await this.hydrateNames(
-        d.added,
-        d.removed,
-      );
+  /**
+   * დამხმარე მეთოდი: გარდაქმნის DB ჩანაწერს UI ლოგად
+   */
+  private mapToLog(delta: any): any {
+    const addedNames =
+      delta.additions?.map((a: any) => a.customer.name).join(', ') || '';
+    const removedNames =
+      delta.removals?.map((r: any) => r.customer.name).join(', ') || '';
+    const addedEmails = delta.additions
+      ?.map((a: any) => a.customer.email)
+      .join(', ');
+    const removedEmails = delta.removals
+      ?.map((r: any) => r.customer.email)
+      .join(', ');
 
-      const logType = getLogType(d.addedCount, d.removedCount);
-
-      const message = formatDeltaMessage(
-        addedSummary,
-        removedSummary,
-        d.segment.name,
-      );
-
-      return {
-        id: d.id,
-        time: new Date(d.computedAt).toLocaleTimeString(),
-        type: logType,
-        message: message,
-      };
-    });
+    return {
+      id: delta.id,
+      time: new Date(delta.computedAt).toLocaleTimeString(),
+      timestamp: delta.computedAt,
+      type: getLogType(delta.addedCount, delta.removedCount),
+      message: formatDeltaMessage(
+        addedNames,
+        removedNames,
+        delta.segment?.name,
+      ),
+      addedEmails: addedEmails,
+      removedEmails: removedEmails,
+      triggeredBy: delta.triggeredBy,
+      addedCount: delta.addedCount,
+      removedCount: delta.removedCount,
+    };
   }
 }

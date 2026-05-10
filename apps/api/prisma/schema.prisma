@@ -20,6 +20,9 @@ model Customer {
   createdAt         DateTime  @default(now())
   transactions      Transaction[]
   memberships       SegmentMembership[]
+  
+  deltaAdditions DeltaAddition[]
+  deltaRemovals  DeltaRemoval[]
 }
 
 model Transaction {
@@ -58,10 +61,27 @@ model SegmentDelta {
   id           String   @id @default(uuid())
   segmentId    String
   computedAt   DateTime @default(now())
-  added        String[] 
-  removed      String[] 
   addedCount   Int
   removedCount Int
   triggeredBy  String   
   segment      Segment  @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+
+  additions    DeltaAddition[]
+  removals     DeltaRemoval[]
+}
+
+model DeltaAddition {
+  id         String       @id @default(uuid())
+  deltaId    String
+  customerId String
+  delta      SegmentDelta @relation(fields: [deltaId], references: [id], onDelete: Cascade)
+  customer   Customer     @relation(fields: [customerId], references: [id])
+}
+
+model DeltaRemoval {
+  id         String       @id @default(uuid())
+  deltaId    String
+  customerId String
+  delta      SegmentDelta @relation(fields: [deltaId], references: [id], onDelete: Cascade)
+  customer   Customer     @relation(fields: [customerId], references: [id])
 }

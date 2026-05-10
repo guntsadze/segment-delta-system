@@ -41,10 +41,6 @@ export class DeltaGateway implements OnGatewayConnection {
     this.server.emit('system:log', data);
   }
 
-  sendSegmentUpdate(segmentId: string, data: any) {
-    this.server.to(`segment:${segmentId}`).emit('segment:update_event', data);
-  }
-
   sendCampaignLog(data: any) {
     this.server.emit('campaign:log', data);
   }

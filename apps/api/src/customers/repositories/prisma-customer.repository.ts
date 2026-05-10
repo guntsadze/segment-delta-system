@@ -41,4 +41,17 @@ export class PrismaCustomerRepository
   async getCustomers(pagination: PaginationDto) {
     return this.findAll({}, pagination);
   }
+
+  async getMemberIds(segmentId: string) {
+    const members = await this.prisma.customer.findMany({
+      where: {
+        memberships: {
+          some: { segmentId },
+        },
+      },
+      select: { id: true },
+    });
+
+    return members.map((m) => m.id);
+  }
 }

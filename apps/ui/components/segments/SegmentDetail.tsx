@@ -62,7 +62,8 @@ export function SegmentDetailView() {
               {segment?.type}
             </span>
             <span className="text-slate-500 flex items-center gap-1">
-              <Users size={16} /> {memberList.length} სეგმენტის წევრები
+              <Users size={16} /> {segment?._count?.members || 0} სეგმენტის
+              წევრები
             </span>
           </div>
         </div>
@@ -76,13 +77,12 @@ export function SegmentDetailView() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* წევრების ცხრილი */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <table className="w-full text-left">
+        <div className=" max-h-[600px] overflow-y-auto lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <table className="w-full text-left ">
             <thead className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
               <tr>
                 <th className="px-6 py-4">სახელი</th>
                 <th className="px-6 py-4">Email</th>
-                <th className="px-6 py-4">სტატუსი</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -90,9 +90,6 @@ export function SegmentDetailView() {
                 <tr key={m.id} className="hover:bg-slate-50 transition">
                   <td className="px-6 py-4 font-medium">{m.name}</td>
                   <td className="px-6 py-4 text-slate-500">{m.email}</td>
-                  <td className="px-6 py-4 text-green-500 text-sm font-medium">
-                    Active
-                  </td>
                 </tr>
               ))}
 
