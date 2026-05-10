@@ -12,27 +12,23 @@ export const useSegments = () => {
   );
 
   useEffect(() => {
-    const handleCountUpdate = ({
-      segmentId,
-      delta,
-    }: {
-      segmentId: string;
-      delta: any;
-    }) => {
+    const handleCountUpdate = (payload: any) => {
+      const segmentId = payload.segmentId;
+      const newTotal = payload.delta?.updates?.total;
+
+      if (newTotal === undefined) return;
+
       segments.setData((prev) =>
         prev.map((s) => {
           if (s.id !== segmentId) return s;
 
-          const currentCount = Number(s.memberCount ?? s._count?.members ?? 0);
-
-          const added = Array.isArray(delta.added) ? delta.added.length : 0;
-          const removed = Array.isArray(delta.removed)
-            ? delta.removed.length
-            : 0;
-
           return {
             ...s,
-            memberCount: currentCount + (added - removed),
+            memberCount: newTotal,
+            _count: {
+              ...s._count,
+              members: newTotal,
+            },
             pulse: true,
           };
         }),

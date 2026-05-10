@@ -54,9 +54,9 @@ export const useSegmentDetails = (id: string) => {
   }, [id, loadData]);
 
   const refreshSegment = async () => {
-    setLoading(true);
     await segmentsService.refreshSegment(id);
-    await loadData();
+    if (members.refresh) await members.refresh();
+    if (deltas.refresh) await deltas.refresh();
   };
 
   return { deltas, segment, members, loading, refreshSegment };
