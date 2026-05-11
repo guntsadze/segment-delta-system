@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { IEvaluationProducer } from '../interfaces/evaluation-producer.interface';
 
 @Injectable()
-export class EvaluationProducer {
+export class EvaluationProducer implements IEvaluationProducer {
   constructor(
     // ვეუბნებით თუ რომელ რიგში ჩააგდოს დავალება
     @InjectQueue('segment-evaluation')

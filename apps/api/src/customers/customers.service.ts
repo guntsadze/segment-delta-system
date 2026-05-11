@@ -1,12 +1,12 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
-import { PrismaCustomerRepository } from './repositories/prisma-customer.repository';
+import { CustomerRepository } from './repositories/customer.repository';
 
 @Injectable()
 export class CustomersService {
   constructor(
     @Inject('ICustomerRepository')
-    private readonly repo: PrismaCustomerRepository,
+    private readonly repo: CustomerRepository,
   ) {}
 
   async getMembersBySegment(id: string, pagination: PaginationDto) {

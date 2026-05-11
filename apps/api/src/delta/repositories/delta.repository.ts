@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
-import { IDeltaRepository } from '../interfaces/delta.repository.interface';
+import { IDeltaRepository } from '../interfaces/delta-repository.interface';
 import { BaseCrudService } from 'src/common/services/base-crud.service';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Injectable()
-export class PrismaDeltaRepository
+export class DeltaRepository
   extends BaseCrudService<any>
   implements IDeltaRepository
 {

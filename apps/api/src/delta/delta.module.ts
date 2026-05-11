@@ -2,9 +2,9 @@ import { Module } from '@nestjs/common';
 import { DeltaService } from './delta.service';
 import { EvaluatorModule } from 'src/evaluator/evaluator.module';
 import { DeltaController } from './delta.controller';
-import { PrismaDeltaRepository } from './repositories/delta.repository';
+import { DeltaRepository } from './repositories/delta.repository';
 import { EvaluatorService } from 'src/evaluator/evaluator.service';
-import { PrismaCustomerRepository } from 'src/customers/repositories/prisma-customer.repository';
+import { CustomerRepository } from 'src/customers/repositories/customer.repository';
 
 @Module({
   imports: [EvaluatorModule],
@@ -12,7 +12,7 @@ import { PrismaCustomerRepository } from 'src/customers/repositories/prisma-cust
     DeltaService,
     {
       provide: 'IDeltaRepository',
-      useClass: PrismaDeltaRepository,
+      useClass: DeltaRepository,
     },
     {
       provide: 'IEvaluator',
@@ -20,7 +20,7 @@ import { PrismaCustomerRepository } from 'src/customers/repositories/prisma-cust
     },
     {
       provide: 'ICustomerRepository',
-      useClass: PrismaCustomerRepository,
+      useClass: CustomerRepository,
     },
   ],
   controllers: [DeltaController],

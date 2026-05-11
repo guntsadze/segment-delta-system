@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { PrismaCustomerRepository } from 'src/customers/repositories/prisma-customer.repository';
+import { CustomerRepository } from 'src/customers/repositories/customer.repository';
 import { CustomersController } from './customers.controller';
 import { CustomersService } from './customers.service';
 
@@ -8,7 +8,7 @@ import { CustomersService } from './customers.service';
     CustomersService,
     {
       provide: 'ICustomerRepository',
-      useClass: PrismaCustomerRepository,
+      useClass: CustomerRepository,
     },
   ],
   controllers: [CustomersController],

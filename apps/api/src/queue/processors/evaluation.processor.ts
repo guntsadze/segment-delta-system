@@ -1,18 +1,22 @@
 import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
-import { DeltaService } from '../../delta/delta.service';
-import { EvaluationProducer } from '../providers/evaluation.producer';
 import { Inject } from '@nestjs/common';
-import type { ISegmentService } from '../interfaces/segment-service.interface';
 import type { INotificationGateway } from '../interfaces/notification-gateway.interface';
+import type { IQueueService } from '../interfaces/queue-service.interface';
+import { IEvaluationProcessor } from '../interfaces/evaluation-processor.interface';
+import type { IEvaluationProducer } from '../interfaces/evaluation-producer.interface';
+import type { IDeltaService } from 'src/delta/interfaces/delta-service.interface';
 
 // ვიღებთ დავცალებას რიგიდან
 @Processor('segment-evaluation')
-export class EvaluationProcessor extends WorkerHost {
+export class EvaluationProcessor
+  extends WorkerHost
+  implements IEvaluationProcessor
+{
   constructor(
-    private deltaService: DeltaService,
-    private producer: EvaluationProducer,
-    @Inject('ISegmentService') private segmentService: ISegmentService,
+    @Inject('IDeltaService') private readonly deltaService: IDeltaService,
+    @Inject('IEvaluationProducer') private producer: IEvaluationProducer,
+    @Inject('IQueueService') private queueService: IQueueService,
     @Inject('INotificationGateway') private gateway: INotificationGateway,
     @InjectQueue('campaign-notifications') private campaignQueue: Queue,
   ) {
@@ -43,7 +47,7 @@ export class EvaluationProcessor extends WorkerHost {
 
       // თუ სეგმენტზე დამოკიდებულია კიდევ სხვა სეგმენტი ვპოულობთ მასაც და ვანახლებთ მასაც
       const dependentSegments =
-        await this.segmentService.findDependentSegments(segmentId);
+        await this.queueService.findDependentSegments(segmentId);
 
       for (const dep of dependentSegments) {
         await this.producer.triggerEvaluation(dep.id, `cascade:${segmentId}`);

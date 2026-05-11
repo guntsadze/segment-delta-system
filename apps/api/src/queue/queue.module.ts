@@ -6,9 +6,13 @@ import { BullBoardModule } from '@bull-board/nestjs';
 import { EvaluationProducer } from './providers/evaluation.producer';
 import { EvaluationProcessor } from './processors/evaluation.processor';
 import { DeltaModule } from '../delta/delta.module';
-import { SegmentService } from './segment.service.';
+import { QueueService } from './queue.service';
 import { DeltaGateway } from 'src/gateway/delta.gateway';
 import { CampaignProcessor } from './processors/campaign.processor';
+import { DeltaService } from 'src/delta/delta.service';
+import { EvaluatorService } from 'src/evaluator/evaluator.service';
+import { DeltaRepository } from 'src/delta/repositories/delta.repository';
+import { CustomerRepository } from 'src/customers/repositories/customer.repository';
 
 @Module({
   imports: [
@@ -39,12 +43,32 @@ import { CampaignProcessor } from './processors/campaign.processor';
     EvaluationProcessor,
     CampaignProcessor,
     {
-      provide: 'ISegmentService',
-      useClass: SegmentService,
+      provide: 'IQueueService',
+      useClass: QueueService,
     },
     {
       provide: 'INotificationGateway',
       useClass: DeltaGateway,
+    },
+    {
+      provide: 'IEvaluationProducer',
+      useClass: EvaluationProducer,
+    },
+    {
+      provide: 'IEvaluator',
+      useClass: EvaluatorService,
+    },
+    {
+      provide: 'IDeltaService',
+      useClass: DeltaService,
+    },
+    {
+      provide: 'IDeltaRepository',
+      useClass: DeltaRepository,
+    },
+    {
+      provide: 'ICustomerRepository',
+      useClass: CustomerRepository,
     },
   ],
   exports: [EvaluationProducer],

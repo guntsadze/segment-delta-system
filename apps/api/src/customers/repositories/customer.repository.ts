@@ -5,7 +5,7 @@ import { PrismaService } from 'prisma/prisma.service';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Injectable()
-export class PrismaCustomerRepository
+export class CustomerRepository
   extends BaseCrudService<any>
   implements ICustomerRepository
 {

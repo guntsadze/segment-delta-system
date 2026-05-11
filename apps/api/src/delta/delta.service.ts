@@ -7,19 +7,20 @@ import {
 import type {
   IDeltaRepository,
   IEvaluator,
-} from './interfaces/delta.repository.interface';
+} from './interfaces/delta-repository.interface';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
-import { PrismaCustomerRepository } from 'src/customers/repositories/prisma-customer.repository';
+import { CustomerRepository } from 'src/customers/repositories/customer.repository';
+import { IDeltaService } from './interfaces/delta-service.interface';
 
 @Injectable()
-export class DeltaService {
+export class DeltaService implements IDeltaService {
   private readonly logger = new Logger(DeltaService.name);
 
   constructor(
     @Inject('IEvaluator') private readonly evaluator: IEvaluator,
     @Inject('IDeltaRepository') private readonly repo: IDeltaRepository,
     @Inject('ICustomerRepository')
-    private readonly customerRepo: PrismaCustomerRepository,
+    private readonly customerRepo: CustomerRepository,
   ) {}
 
   /**
