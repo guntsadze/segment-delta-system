@@ -52,31 +52,34 @@ export class EvaluatorService {
     switch (condition.type) {
       case 'MIN_TRANSACTIONS_IN_DAYS':
         // Transaction ცხრილიდან მოგვაქვს მომხმარებლები ვინც ბოლო X დღეში მინიმუმ N ტრანზაქცია აქვს გატარებული
-        result = await this.prisma.$queryRawUnsafe(`
-          SELECT "customerId" FROM "Transaction"
-          WHERE "createdAt" >= NOW() - INTERVAL '${condition.days} days'
-          GROUP BY "customerId"
-          HAVING COUNT(*) >= ${condition.minCount}
-        `);
+        result = await this.prisma.$queryRaw`
+        SELECT "customerId" 
+        FROM "Transaction"
+        WHERE "createdAt" >= NOW() - CAST(${condition.days} || ' days' AS INTERVAL)
+        GROUP BY "customerId"
+        HAVING COUNT(*) >= ${condition.minCount}
+      `;
         break;
 
       case 'MIN_SPEND_IN_DAYS':
         // Transaction ცხრილიდან მოგვაქვს მომხმარებლები, რომლებმაც X დღეში დახარჯეს მინიმუმ N ლარი
-        result = await this.prisma.$queryRawUnsafe(`
-          SELECT "customerId" FROM "Transaction"
-          WHERE "createdAt" >= NOW() - INTERVAL '${condition.days} days'
-          GROUP BY "customerId"
-          HAVING SUM("amount") >= ${condition.minAmount}
-        `);
+        result = await this.prisma.$queryRaw`
+        SELECT "customerId" 
+        FROM "Transaction"
+        WHERE "createdAt" >= NOW() - CAST(${condition.days} || ' days' AS INTERVAL)
+        GROUP BY "customerId"
+        HAVING SUM("amount") >= ${condition.minAmount}
+      `;
         break;
 
       case 'INACTIVE_AFTER_ACTIVE':
         // პირდაპირ Customer ცხრილში ვნახულობთ lastTransactionAt ველს რადგან ვნახოთ ბოლოს როდის ქონდა აქტივობა
-        result = await this.prisma.$queryRawUnsafe(`
-          SELECT "id" as "customerId" FROM "Customer"
-          WHERE "lastTransactionAt" < NOW() - INTERVAL '${condition.inactiveDays} days'
-          AND "lastTransactionAt" IS NOT NULL
-        `);
+        result = await this.prisma.$queryRaw`
+        SELECT "id" as "customerId" 
+        FROM "Customer"
+        WHERE "lastTransactionAt" < NOW() - CAST(${condition.inactiveDays} || ' days' AS INTERVAL)
+        AND "lastTransactionAt" IS NOT NULL
+      `;
         break;
 
       case 'IN_SEGMENT':
@@ -87,11 +90,11 @@ export class EvaluatorService {
         });
         return new Set(members.map((m) => m.customerId));
 
-      case 'ALL_CUSTOMERS':
-        result = await this.prisma.$queryRawUnsafe(`
-          SELECT "id" AS "customerId" FROM "Customer"
-        `);
-        break;
+      // case 'ALL_CUSTOMERS':
+      //   result = await this.prisma.$queryRaw`
+      //   SELECT "id" AS "customerId" FROM "Customer"
+      // `;
+      //   break;
     }
 
     return new Set(result.map((r) => r.customerId));
@@ -104,20 +107,35 @@ export class EvaluatorService {
     operator: 'AND' | 'OR',
     results: Set<string>[],
   ): Set<string> {
-    // 1. თუ პირობები საერთოდ არ გვაქვს, სეგმენტი ცარიელია
+    // თუ პირობები საერთოდ არ გვაქვს, სეგმენტი ცარიელია
     if (results.length === 0) return new Set();
-
-    // 2. თუ მხოლოდ ერთი პირობაა, პირდაპირ იმას ვაბრუნებთ (ოპტიმიზაცია)
+    // თუ მხოლოდ ერთი პირობაა,
+    // პირდაპირ იმას ვაბრუნებთ (ოპტიმიზაცია)
     if (results.length === 1) return results[0];
 
+    results.sort((a, b) => a.size - b.size);
+
     if (operator === 'AND') {
-      //  AND (თანაკვეთა): მომხმარებელი უნდა იყოს ყველა სიაში
-      // reduce იწყებს პირველი სეტიდან და სათითაოდ ადარებს დანარჩენებს
-      return results.reduce((a, b) => new Set([...a].filter((x) => b.has(x))));
+      const finalSet = new Set<string>();
+      const [smallestSet, ...otherSets] = results;
+
+      // მხოლოდ ყველაზე პატარა სეტის წევრებს ვამოწმებთ სხვებში
+      for (const id of smallestSet) {
+        if (otherSets.every((s) => s.has(id))) {
+          finalSet.add(id);
+        }
+      }
+
+      return finalSet;
     } else {
-      //  OR (გაერთიანება): მომხმარებელი შეიძლება იყოს ნებისმიერ სიაში
-      // უბრალოდ ყველა ID-ს ვყრით ერთ დიდ სეტში
-      return results.reduce((a, b) => new Set([...a, ...b]));
+      // OR: უბრალოდ ვამატებთ ყველას ერთ სეტში დუბლიკატების გარეშე
+      const finalSet = new Set<string>();
+      for (const resultSet of results) {
+        for (const id of resultSet) {
+          finalSet.add(id);
+        }
+      }
+      return finalSet;
     }
   }
 }

@@ -71,6 +71,6 @@ import { CustomerRepository } from 'src/customers/repositories/customer.reposito
       useClass: CustomerRepository,
     },
   ],
-  exports: [EvaluationProducer],
+  exports: [EvaluationProducer, BullModule],
 })
 export class QueueModule {}

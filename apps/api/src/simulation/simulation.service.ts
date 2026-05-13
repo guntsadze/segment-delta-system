@@ -1,59 +1,50 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { EvaluationProducer } from '../queue/providers/evaluation.producer';
-import { PrismaService } from 'prisma/prisma.service';
-import { Transaction } from 'node_modules/.prisma/client';
-import { DeltaGateway } from 'src/gateway/delta.gateway';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ISimulationService } from './interfaces/simulation-service.interface';
+import type { ISimulationRepository } from './interfaces/simulation-repository.interface';
+import type { IEvaluationProducer } from 'src/queue/interfaces/evaluation-producer.interface';
+import type { INotificationGateway } from 'src/queue/interfaces/notification-gateway.interface';
+import {
+  formatBulkImportMessage,
+  formatCustomerUpdateMessage,
+  formatManualMembershipMessage,
+  formatTimeTravelMessage,
+  formatTransactionMessage,
+} from 'src/common/utils/log-helper';
+import { getNowTime } from 'src/common/utils/date-utils';
+import { CHUNK_SIZE, chunkProcess } from 'src/common/utils/array.util';
 
 @Injectable()
-export class SimulationService {
+export class SimulationService implements ISimulationService {
   private readonly logger = new Logger(SimulationService.name);
 
   constructor(
-    private evaluationProducer: EvaluationProducer,
-    private readonly prisma: PrismaService,
-    private gateway: DeltaGateway,
+    @Inject('IEvaluationProducer')
+    private readonly evaluationProducer: IEvaluationProducer,
+    @Inject('ISimulationRepository')
+    private readonly repo: ISimulationRepository,
+    @Inject('INotificationGateway')
+    private readonly gateway: INotificationGateway,
   ) {}
 
   /**
    * სიმულაცია: ახალი ტრანზაქცია
    */
   async addTransaction(customerId: string, amount: number, count: number = 1) {
-    this.logger.log(
-      `Adding ${count} transactions for customer ${customerId} with amount ${amount}...`,
-    );
+    // 1. მოვამზადოთ მონაცემები მასივად (Memory-ში)
+    const transactionData = Array(count).fill({ customerId, amount });
+    const totalIncrement = amount * count;
 
-    const transactions: Transaction[] = [];
-    let totalIncrement = 0;
+    // 2. გამოვიყენოთ Bulk Update (დავამატოთ რეპოში ეს მეთოდი)
+    const transactions =
+      await this.repo.createManyTransactions(transactionData);
+    await this.repo.updateCustomerTotalSpent(customerId, totalIncrement);
 
-    for (let i = 0; i < count; i++) {
-      const transaction = await this.prisma.transaction.create({
-        data: {
-          customerId,
-          amount: amount,
-        },
-      });
-      transactions.push(transaction);
-      totalIncrement += amount;
-    }
+    const customer = await this.repo.getCustomerById(customerId);
+    const message = formatTransactionMessage(customer?.name, amount, count);
 
-    // განვაახლოთ მომხმარებლის ჯამური დახარჯვა და ბოლო ტრანზაქციის დრო
-    await this.prisma.customer.update({
-      where: { id: customerId },
-      data: {
-        totalSpent: { increment: totalIncrement },
-        lastTransactionAt: new Date(),
-      },
-    });
-
-    const customer = await this.prisma.customer.findUnique({
-      where: { id: customerId },
-    });
-
-    this.gateway.server.emit('system:log', {
-      id: Math.random(),
-      message: `ტრანზაქცია: ${customer?.name}-ზე გატარდა $${amount} (${count}-ჯერ).`,
-      type: 'action',
-      time: new Date().toLocaleTimeString(),
+    this.gateway.sendSystemLog({
+      message,
+      time: getNowTime(),
     });
 
     // ტრანზაქციის შემდეგ ყველა დინამიური სეგმენტი უნდა გადამოწმდეს
@@ -69,29 +60,17 @@ export class SimulationService {
     let targetName = 'ყველა მომხმარებლისთვის';
 
     if (customerId) {
-      const customer = await this.prisma.customer.findUnique({
-        where: { id: customerId },
-      });
+      const customer = await this.repo.getCustomerById(customerId);
       targetName = `მომხმარებლისთვის: ${customer?.name}`;
     }
 
-    const transactionQuery = customerId
-      ? `UPDATE "Transaction" SET "createdAt" = "createdAt" - INTERVAL '${days} days' WHERE "customerId" = '${customerId}'`
-      : `UPDATE "Transaction" SET "createdAt" = "createdAt" - INTERVAL '${days} days'`;
+    await this.repo.advanceTimeRaw(days, customerId);
 
-    // 2. მომხმარებლის ბოლო აქტივობის განახლება
-    const customerQuery = customerId
-      ? `UPDATE "Customer" SET "lastTransactionAt" = "lastTransactionAt" - INTERVAL '${days} days' WHERE "id" = '${customerId}'`
-      : `UPDATE "Customer" SET "lastTransactionAt" = "lastTransactionAt" - INTERVAL '${days} days'`;
+    const message = formatTimeTravelMessage(days, targetName);
 
-    await this.prisma.$executeRawUnsafe(transactionQuery);
-    await this.prisma.$executeRawUnsafe(customerQuery);
-
-    this.gateway.server.emit('system:log', {
-      id: Math.random(),
-      message: `⏳ მომხმარებლის უმოქმედობა: გადავიწიეთ ${days} დღით უკან ${targetName}.`,
-      type: 'action',
-      time: new Date().toLocaleTimeString(),
+    this.gateway.sendSystemLog({
+      message: message,
+      time: getNowTime(),
     });
 
     await this.triggerAllDynamicSegments(
@@ -107,42 +86,31 @@ export class SimulationService {
    * დამხმარე მეთოდი: ყველა დინამიური სეგმენტის რიგში ჩაგდება
    */
   private async triggerAllDynamicSegments(reason: string) {
-    const segments = await this.prisma.segment.findMany({
-      where: { type: 'DYNAMIC' },
-      select: { id: true },
-    });
+    const segments = await this.repo.findDynamicSegmentIds();
 
-    for (const segment of segments) {
-      await this.evaluationProducer.triggerEvaluation(segment.id, reason);
-    }
+    await chunkProcess(segments, CHUNK_SIZE, async (chunk) => {
+      await Promise.all(
+        chunk.map((segment) =>
+          this.evaluationProducer.triggerEvaluation(segment.id, reason),
+        ),
+      );
+    });
   }
+
   /**
    * სიმულაცია: მომხმარებლის მონაცემების განახლება
    */
   async updateCustomer(customerId: string, data: any) {
-    const oldCustomer = await this.prisma.customer.findUnique({
-      where: { id: customerId },
-      select: { name: true },
-    });
+    const oldCustomer = await this.repo.getCustomerById(customerId);
+    const updated = await this.repo.updateCustomerData(customerId, data);
 
-    const updated = await this.prisma.customer.update({
-      where: { id: customerId },
-      data: {
-        ...data,
-        lastTransactionAt: new Date(),
-      },
-    });
+    const message = formatCustomerUpdateMessage(
+      oldCustomer?.name,
+      updated.name,
+    );
 
-    const nameChangedMessage =
-      oldCustomer?.name !== updated.name
-        ? `(სახელი შეიცვალა: "${oldCustomer?.name}" ➔ "${updated.name}")`
-        : '';
-
-    this.gateway.server.emit('system:log', {
-      id: Math.random(),
-      message: `👤 პროფილი: ${updated.name}-ს მონაცემები განახლდა. ${nameChangedMessage}`,
-      type: 'action',
-      time: new Date().toLocaleTimeString(),
+    this.gateway.sendSystemLog({
+      message: message,
     });
 
     await this.triggerAllDynamicSegments('simulation:customer_update');
@@ -155,73 +123,50 @@ export class SimulationService {
   async bulkImport(count: number) {
     this.logger.log(`Starting bulk import of ${count} customers...`);
 
-    const CHUNK_SIZE = 100;
     const totalChunks = Math.ceil(count / CHUNK_SIZE);
+    let processedChunks = 0;
 
-    for (let i = 0; i < totalChunks; i++) {
-      // 1. შევქმნათ 100 იუზერი მეხსიერებაში
-      const batch = Array.from({ length: CHUNK_SIZE }).map((_, j) => ({
-        name: `Bulk User ${i * CHUNK_SIZE + j}`,
-        email: `bulk_${i}_${j}_${Date.now()}@example.com`,
-        totalSpent: Math.random() * 1000,
-      }));
+    const customers = Array.from({ length: count }).map((_, i) => ({
+      name: `Bulk User ${i}`,
+      email: `bulk_${i}_${Date.now()}@example.com`,
+      totalSpent: Math.random() * 1000,
+    }));
 
-      // 2. ჩავწეროთ ბაზაში
-      await this.prisma.customer.createMany({ data: batch });
+    await chunkProcess(customers, CHUNK_SIZE, async (chunk) => {
+      await this.repo.bulkCreateCustomers(chunk);
 
-      this.gateway.server.emit('system:log', {
-        id: Math.random(),
-        message: `📦 მომხმარებელი დაემატა ბაზაში ${i + 1}/${totalChunks}.`,
-        type: 'action',
-        time: new Date().toLocaleTimeString(),
+      processedChunks++;
+
+      this.gateway.sendSystemLog({
+        message: formatBulkImportMessage(processedChunks, totalChunks),
+        time: getNowTime(),
       });
 
-      // 3. რიგში დავალებას ვაგდებთ მხოლოდ პორციის ბოლოს
-      // ეს უზრუნველყოფს, რომ სისტემა არ "დაიხრჩოს" 50,000 ცალკეული დავალებით
-      await this.triggerAllDynamicSegments(`simulation:bulk_import_chunk_${i}`);
-
-      // მცირე შესვენება (Backpressure), რომ ბაზას ამოუნთქვის საშუალება მივცეთ
       await new Promise((resolve) => setTimeout(resolve, 50));
-    }
+    });
 
+    await this.triggerAllDynamicSegments('simulation:bulk_import_completed');
     return { message: `Bulk import of ${count} customers completed.` };
   }
 
   async addMemberManually(segmentId: string, customerId: string) {
-    const [customer, segment] = await Promise.all([
-      this.prisma.customer.findUnique({
-        where: { id: customerId },
-        select: { name: true },
-      }),
-      this.prisma.segment.findUnique({
-        where: { id: segmentId },
-        select: { name: true },
-      }),
-    ]);
+    const [customer, segment] = await this.repo.getSegmentAndCustomerNames(
+      segmentId,
+      customerId,
+    );
 
-    const membership = await this.prisma.segmentMembership.upsert({
-      where: { segmentId_customerId: { segmentId, customerId } },
-      update: {},
-      create: { segmentId, customerId },
-    });
+    const membership = await this.repo.upsertMembership(segmentId, customerId);
 
-    await this.prisma.segmentDelta.create({
-      data: {
-        segmentId,
-        additions: {
-          create: { customerId },
-        },
-        addedCount: 1,
-        removedCount: 0,
-        triggeredBy: 'manual_addition',
-      },
-    });
+    await this.repo.createManualDelta(segmentId, customerId);
 
-    this.gateway.server.emit('system:log', {
-      id: Math.random(),
-      message: `➕ ადმინ-პანელი: ${customer?.name} ხელით დაემატა სეგმენტში "${segment?.name}".`,
-      type: 'action',
-      time: new Date().toLocaleTimeString(),
+    const message = formatManualMembershipMessage(
+      customer?.name,
+      segment?.name,
+    );
+
+    this.gateway.sendSystemLog({
+      message: message,
+      time: getNowTime(),
     });
 
     return membership;

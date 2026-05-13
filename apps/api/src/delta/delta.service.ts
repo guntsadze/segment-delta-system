@@ -32,11 +32,12 @@ export class DeltaService implements IDeltaService {
     const previousSet = new Set(existingMemberIds);
 
     // 2. გამოვთვალოთ ვინ უნდა იყოს სეგმენტში ახლანდელი მონაცემებით
-    const currentSet = await this.evaluator.evaluate(segmentId);
+    const currentMemberIds = await this.evaluator.evaluate(segmentId);
+    const currentSet = new Set(currentMemberIds);
 
     // 3. ვიპოვოთ სხვაობა (Delta)
-    const added = [...currentSet].filter((id) => !previousSet.has(id));
-    const removed = [...previousSet].filter((id) => !currentSet.has(id));
+    const added = [...currentMemberIds].filter((id) => !previousSet.has(id));
+    const removed = existingMemberIds.filter((id) => !currentSet.has(id));
 
     if (added.length === 0 && removed.length === 0) return null;
 

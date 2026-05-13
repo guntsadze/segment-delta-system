@@ -8,7 +8,9 @@ import type { IEvaluationProducer } from '../interfaces/evaluation-producer.inte
 import type { IDeltaService } from 'src/delta/interfaces/delta-service.interface';
 
 // ვიღებთ დავცალებას რიგიდან
-@Processor('segment-evaluation')
+@Processor('segment-evaluation', {
+  concurrency: 50,
+})
 export class EvaluationProcessor
   extends WorkerHost
   implements IEvaluationProcessor
