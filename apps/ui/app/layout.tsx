@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import "./globals.css";
 import { Inter } from "next/font/google";
 import Link from "next/link";
+import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -42,6 +43,7 @@ export default function RootLayout({
           </div>
         </nav>
         <main className="p-4">{children}</main>
+        <Toaster richColors position="top-right" />
       </body>
     </html>
   );

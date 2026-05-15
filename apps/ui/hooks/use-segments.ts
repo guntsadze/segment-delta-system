@@ -57,7 +57,6 @@ export const useSegments = () => {
       segments.setData((prev) => [newSegment, ...prev]);
       return newSegment;
     } catch (err) {
-      setError("ვერ მოხერხდა სეგმენტის დამატება");
       throw err;
     }
   };
@@ -74,7 +73,6 @@ export const useSegments = () => {
       );
       return updatedData;
     } catch (err) {
-      setError("ვერ მოხერხდა სეგმენტის განახლება");
       throw err;
     }
   };
@@ -84,7 +82,6 @@ export const useSegments = () => {
       await segmentsService.deleteSegment(id);
       segments.setData((prev) => prev.filter((s) => s.id !== id));
     } catch (err) {
-      setError("ვერ მოხერხდა სეგმენტის წაშლა");
       throw err;
     }
   };

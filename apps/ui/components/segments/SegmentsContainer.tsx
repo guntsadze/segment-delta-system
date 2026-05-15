@@ -32,7 +32,6 @@ export function SegmentsContainer() {
       closeForm();
     } catch (err) {
       console.error("Save error:", err);
-      alert("შეცდომა შენახვისას!");
     }
   };
 
