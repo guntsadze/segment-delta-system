@@ -6,4 +6,6 @@ export interface ISegmentsRepository {
   createSegment(data: any): Promise<any>;
   updateSegment(id: string, data: any): Promise<any>;
   deleteSegmentWithRelations(id: string): Promise<any>;
+  validateRules(targetSegmentId: string, rules: any): Promise<void>;
+  findDependentSegments(id: string): Promise<any[]>;
 }

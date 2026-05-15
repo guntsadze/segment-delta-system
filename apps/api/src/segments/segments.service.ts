@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, ConflictException } from '@nestjs/common';
 import { EvaluationProducer } from '../queue/providers/evaluation.producer';
 import type { ISegmentsRepository } from './interfaces/segments.repository.interface';
 import { CreateSegmentDto } from './dto/segments.dto';
@@ -41,6 +41,9 @@ export class SegmentsService {
   }
 
   async update(id: string, data: UpdateSegmentDto) {
+    if (data.rules) {
+      await this.repo.validateRules(id, data.rules);
+    }
     const segment = await this.repo.updateSegment(id, data);
 
     if (data.rules) {
@@ -50,6 +53,14 @@ export class SegmentsService {
   }
 
   async remove(id: string) {
+    const dependents = await this.repo.findDependentSegments(id);
+
+    if (dependents.length > 0) {
+      const names = dependents.map((s) => s.name).join(', ');
+      throw new ConflictException(
+        `სეგმენტის წაშლა შეუძლებელია, რადგან მას იყენებენ შემდეგი სეგმენტები ---> ${names}`,
+      );
+    }
     return this.repo.deleteSegmentWithRelations(id);
   }
 }

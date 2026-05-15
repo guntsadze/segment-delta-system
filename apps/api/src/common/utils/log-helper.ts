@@ -77,7 +77,7 @@ export function formatBulkImportMessage(
 
 export async function wrapAsLogs<T>(
   result: T[] | PaginatedResult<T>,
-  mapper: (item: T) => Promise<ISystemLog>,
+  mapper: (item: T) => ISystemLog | Promise<ISystemLog>,
 ): Promise<ISystemLog[] | PaginatedResult<ISystemLog>> {
   // ვამოწმებთ, პასუხი პაგინირებულია თუ პირდაპირ მასივია
   const dataArray = Array.isArray(result) ? result : result.data;

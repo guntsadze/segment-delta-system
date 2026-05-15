@@ -5,12 +5,15 @@ import {
   wrapAsLogs,
 } from 'src/common/utils/log-helper';
 import type {
+  DeltaItemWithCustomer,
+  DeltaWithRelations,
   IDeltaRepository,
   IEvaluator,
 } from './interfaces/delta-repository.interface';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { CustomerRepository } from 'src/customers/repositories/customer.repository';
 import { IDeltaService } from './interfaces/delta-service.interface';
+import { ISystemLog } from 'types/log.types';
 
 @Injectable()
 export class DeltaService implements IDeltaService {
@@ -32,12 +35,18 @@ export class DeltaService implements IDeltaService {
     const previousSet = new Set(existingMemberIds);
 
     // 2. გამოვთვალოთ ვინ უნდა იყოს სეგმენტში ახლანდელი მონაცემებით
-    const currentMemberIds = await this.evaluator.evaluate(segmentId);
-    const currentSet = new Set(currentMemberIds);
+    const currentSet = await this.evaluator.evaluate(segmentId);
 
     // 3. ვიპოვოთ სხვაობა (Delta)
-    const added = [...currentMemberIds].filter((id) => !previousSet.has(id));
-    const removed = existingMemberIds.filter((id) => !currentSet.has(id));
+    const added: string[] = [];
+    for (const id of currentSet) {
+      if (!previousSet.has(id)) added.push(id);
+    }
+
+    const removed: string[] = [];
+    for (const id of existingMemberIds) {
+      if (!currentSet.has(id)) removed.push(id);
+    }
 
     if (added.length === 0 && removed.length === 0) return null;
 
@@ -82,33 +91,25 @@ export class DeltaService implements IDeltaService {
   /**
    * დამხმარე მეთოდი: გარდაქმნის DB ჩანაწერს UI ლოგად
    */
-  private mapToLog(delta: any): any {
-    const addedNames =
-      delta.additions?.map((a: any) => a.customer.name).join(', ') || '';
-    const removedNames =
-      delta.removals?.map((r: any) => r.customer.name).join(', ') || '';
-    const addedEmails = delta.additions
-      ?.map((a: any) => a.customer.email)
-      .join(', ');
-    const removedEmails = delta.removals
-      ?.map((r: any) => r.customer.email)
-      .join(', ');
+  private mapToLog(delta: DeltaWithRelations): ISystemLog {
+    const getSampleText = (list: DeltaItemWithCustomer[]) => {
+      const count = list.length;
+      const samples = list.slice(0, 3).map((item) => item.customer.name);
+
+      return count > 3
+        ? `${samples.join(', ')} და კიდევ ${count - 3} სხვა...`
+        : samples.join(', ');
+    };
 
     return {
       id: delta.id,
       time: new Date(delta.computedAt).toLocaleTimeString(),
-      timestamp: delta.computedAt,
       type: getLogType(delta.addedCount, delta.removedCount),
       message: formatDeltaMessage(
-        addedNames,
-        removedNames,
+        getSampleText(delta.additions),
+        getSampleText(delta.removals),
         delta.segment?.name,
       ),
-      addedEmails: addedEmails,
-      removedEmails: removedEmails,
-      triggeredBy: delta.triggeredBy,
-      addedCount: delta.addedCount,
-      removedCount: delta.removedCount,
     };
   }
 }

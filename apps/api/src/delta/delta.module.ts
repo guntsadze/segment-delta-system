@@ -5,6 +5,7 @@ import { DeltaController } from './delta.controller';
 import { DeltaRepository } from './repositories/delta.repository';
 import { EvaluatorService } from 'src/evaluator/evaluator.service';
 import { CustomerRepository } from 'src/customers/repositories/customer.repository';
+import { EvaluatorRepository } from 'src/evaluator/repositories/evaluator.repository';
 
 @Module({
   imports: [EvaluatorModule],
@@ -21,6 +22,10 @@ import { CustomerRepository } from 'src/customers/repositories/customer.reposito
     {
       provide: 'ICustomerRepository',
       useClass: CustomerRepository,
+    },
+    {
+      provide: 'IEvaluatorRepository',
+      useClass: EvaluatorRepository,
     },
   ],
   controllers: [DeltaController],

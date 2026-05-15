@@ -13,6 +13,7 @@ import { DeltaService } from 'src/delta/delta.service';
 import { EvaluatorService } from 'src/evaluator/evaluator.service';
 import { DeltaRepository } from 'src/delta/repositories/delta.repository';
 import { CustomerRepository } from 'src/customers/repositories/customer.repository';
+import { EvaluatorRepository } from 'src/evaluator/repositories/evaluator.repository';
 
 @Module({
   imports: [
@@ -57,6 +58,10 @@ import { CustomerRepository } from 'src/customers/repositories/customer.reposito
     {
       provide: 'IEvaluator',
       useClass: EvaluatorService,
+    },
+    {
+      provide: 'IEvaluatorRepository',
+      useClass: EvaluatorRepository,
     },
     {
       provide: 'IDeltaService',
